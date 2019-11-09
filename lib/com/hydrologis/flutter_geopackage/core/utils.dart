@@ -1,0 +1,555 @@
+part of flutter_geopackage;
+
+class SQLException implements Exception {
+  String msg;
+
+  SQLException(this.msg);
+
+  String toString() => "SQLException: " + msg;
+}
+
+/**
+ * A simple table info.
+ *
+ * <p>If performance is needed, this should not be used.</p>
+ *
+ * @author Andrea Antonello (www.hydrologis.com)
+ */
+class QueryResult {
+  /**
+   * Index of the primary key (if available), that can be used for updates.
+   */
+  int pkIndex = -1;
+
+  /**
+   * The index of the geometry, if available.
+   */
+  int geometryIndex = -1;
+
+  /**
+   * The names of the columns of the result.
+   */
+  List<String> names = [];
+
+  /**
+   * The types of the columns of the result.
+   */
+  List<String> types = [];
+
+  /**
+   * The records of data of each column.
+   */
+  List<List<dynamic>> data = [];
+
+  /**
+   * The optional geometries for each record.
+   */
+  List<Geometry> geometries = [];
+
+  /**
+   * The time taken to complete the query.
+   */
+  int queryTimeMillis = 0;
+}
+
+/**
+ * Class representing a geometry_columns record.
+ *
+ * @author Andrea Antonello (www.hydrologis.com)
+ */
+class GeometryColumn {
+  // VARIABLES
+  String tableName;
+  String geometryColumnName;
+
+  /**
+   * The type, as compatible with {@link EGeometryType#fromGeometryTypeCode(int)} and {@link ESpatialiteGeometryType#forValue(int)}.
+   */
+  EGeometryType geometryType;
+  int coordinatesDimension;
+  int srid;
+  int isSpatialIndexEnabled;
+}
+
+class DataType {
+  static const Feature = const DataType._("features");
+  static const Tile = const DataType._("tiles");
+
+  final String value;
+
+  const DataType._(this.value);
+
+  static DataType of(String type) {
+    if (type == Feature.value) {
+      return Feature;
+    } else if (type == Tile.value) {
+      return Tile;
+    } else {
+      return null;
+    }
+  }
+}
+
+/**
+ * Entry in a geopackage.
+ *
+ * <p>This class corresponds to the "geopackage_contents" table.
+ *
+ * @author Justin Deoliveira, OpenGeo
+ */
+class Entry {
+  String tableName;
+  DataType dataType;
+  String identifier;
+  String description;
+  Envelope bounds;
+  int srid;
+
+  String getTableName() {
+    return tableName;
+  }
+
+  void setTableName(String tableName) {
+    this.tableName = tableName;
+  }
+
+  DataType getDataType() {
+    return dataType;
+  }
+
+  void setDataType(DataType dataType) {
+    this.dataType = dataType;
+  }
+
+  String getIdentifier() {
+    return identifier;
+  }
+
+  void setIdentifier(String identifier) {
+    this.identifier = identifier;
+  }
+
+  String getDescription() {
+    return description;
+  }
+
+  void setDescription(String description) {
+    this.description = description;
+  }
+
+  Envelope getBounds() {
+    return bounds;
+  }
+
+  void setBounds(Envelope bounds) {
+    this.bounds = bounds;
+  }
+
+  int getSrid() {
+    return srid;
+  }
+
+  void setSrid(int srid) {
+    this.srid = srid;
+  }
+
+  void init(Entry e) {
+    setDescription(e.getDescription());
+    setIdentifier(e.getIdentifier());
+    setDataType(e.getDataType());
+    setBounds(e.getBounds());
+    setSrid(e.getSrid());
+    setTableName(e.getTableName());
+  }
+
+  Entry copy() {
+    Entry e = new Entry();
+    e.init(this);
+    return e;
+  }
+}
+
+/**
+ * Feature entry in a geopackage.
+ *
+ * <p>This class corresponds to the "geometry_columns" table.
+ *
+ * @author Justin Deoliveira, OpenGeo
+ * @author Niels Charlier
+ */
+class FeatureEntry extends Entry {
+  EGeometryType geometryType;
+  bool z = false;
+  bool m = false;
+  String geometryColumn;
+
+  FeatureEntry() {
+    setDataType(DataType.Feature);
+  }
+
+  String getGeometryColumn() {
+    return geometryColumn;
+  }
+
+  void setGeometryColumn(String geometryColumn) {
+    this.geometryColumn = geometryColumn;
+  }
+
+  EGeometryType getGeometryType() {
+    return geometryType;
+  }
+
+  void setGeometryType(EGeometryType geometryType) {
+    this.geometryType = geometryType;
+  }
+
+  void init(Entry e) {
+    super.init(e);
+    if (e is FeatureEntry) {
+      setGeometryColumn(e.getGeometryColumn());
+      setGeometryType(e.getGeometryType());
+      setZ(e.isZ());
+      setM(e.isM());
+    }
+  }
+
+  bool isZ() {
+    return z;
+  }
+
+  void setZ(bool z) {
+    this.z = z;
+  }
+
+  bool isM() {
+    return m;
+  }
+
+  void setM(bool m) {
+    this.m = m;
+  }
+
+  FeatureEntry copy() {
+    FeatureEntry e = new FeatureEntry();
+    e.init(this);
+    return e;
+  }
+}
+
+/**
+ * Geometry types used by the utility.
+ *
+ * @author Andrea Antonello (www.hydrologis.com)
+ */
+class EGeometryType {
+//  static const NONE = const EGeometryType._(0, 0);
+  static const POINT = const EGeometryType._(Point, MultiPoint, "Point");
+  static const MULTIPOINT = const EGeometryType._(MultiPoint, MultiPoint, "MultiPoint");
+  static const LINESTRING = const EGeometryType._(LineString, MultiLineString, "LineString");
+  static const MULTILINESTRING = const EGeometryType._(MultiLineString, MultiLineString, "MultiLineString");
+  static const POLYGON = const EGeometryType._(Polygon, MultiPolygon, "Polygon");
+  static const MULTIPOLYGON = const EGeometryType._(MultiPolygon, MultiPolygon, "MultiPolygon");
+  static const GEOMETRYCOLLECTION = const EGeometryType._(GeometryCollection, GeometryCollection, "GeometryCollection");
+  static const GEOMETRY = const EGeometryType._(Geometry, Geometry, "GEOMETRY");
+  static const UNKNOWN = const EGeometryType._(null, null, "Unknown");
+
+  final clazz;
+  final multiClazz;
+  final String typeName;
+
+  const EGeometryType._(this.clazz, this.multiClazz, this.typeName);
+
+  dynamic getClazz() {
+    return clazz;
+  }
+
+  dynamic getMultiClazz() {
+    return multiClazz;
+  }
+
+// static EGeometryType forClass( Class< ? > clazz ) {
+//if (POINT.getClazz().isAssignableFrom(clazz)) {
+//return POINT;
+//} else if (MULTIPOINT.getClazz().isAssignableFrom(clazz)) {
+//return MULTIPOINT;
+//} else if (LINESTRING.getClazz().isAssignableFrom(clazz)) {
+//return LINESTRING;
+//} else if (MULTILINESTRING.getClazz().isAssignableFrom(clazz)) {
+//return MULTILINESTRING;
+//} else if (POLYGON.getClazz().isAssignableFrom(clazz)) {
+//return POLYGON;
+//} else if (MULTIPOLYGON.getClazz().isAssignableFrom(clazz)) {
+//return MULTIPOLYGON;
+//} else if (GEOMETRYCOLLECTION.getClazz().isAssignableFrom(clazz)) {
+//return GEOMETRYCOLLECTION;
+//} else if (GEOMETRY.getClazz().isAssignableFrom(clazz)) {
+//return GEOMETRY;
+//} else {
+//return UNKNOWN;
+//}
+//}
+
+  bool isMulti() {
+    switch (this) {
+      case MULTILINESTRING:
+      case MULTIPOINT:
+      case MULTIPOLYGON:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  bool isPoint() {
+    switch (this) {
+      case MULTIPOINT:
+      case POINT:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  bool isLine() {
+    switch (this) {
+      case MULTILINESTRING:
+      case LINESTRING:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  bool isPolygon() {
+    switch (this) {
+      case MULTIPOLYGON:
+      case POLYGON:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  bool isCompatibleWith(EGeometryType geometryType) {
+    switch (geometryType) {
+      case LINESTRING:
+        return this == LINESTRING;
+      case MULTILINESTRING:
+        return this == LINESTRING || this == MULTILINESTRING;
+      case POINT:
+        return this == POINT;
+      case MULTIPOINT:
+        return this == POINT || this == MULTIPOINT;
+      case POLYGON:
+        return this == POLYGON;
+      case MULTIPOLYGON:
+        return this == POLYGON || this == MULTIPOLYGON;
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * Returns the {@link EGeometryType} for a given {@link Geometry}.
+   *
+   * @param geometry the geometry to check.
+   * @return the type.
+   */
+  static EGeometryType forGeometry(Geometry geometry) {
+    if (geometry is LineString) {
+      return EGeometryType.LINESTRING;
+    } else if (geometry is MultiLineString) {
+      return EGeometryType.MULTILINESTRING;
+    } else if (geometry is Point) {
+      return EGeometryType.POINT;
+    } else if (geometry is MultiPoint) {
+      return EGeometryType.MULTIPOINT;
+    } else if (geometry is Polygon) {
+      return EGeometryType.POLYGON;
+    } else if (geometry is MultiPolygon) {
+      return EGeometryType.MULTIPOLYGON;
+    } else if (geometry is GeometryCollection) {
+      return EGeometryType.GEOMETRYCOLLECTION;
+    } else {
+      return EGeometryType.GEOMETRY;
+    }
+  }
+
+  static EGeometryType forWktName(String wktName) {
+    if (StringUtils.equalsIgnoreCase(wktName, POINT.getTypeName())) {
+      return POINT;
+    } else if (StringUtils.equalsIgnoreCase(wktName, MULTIPOINT.getTypeName())) {
+      return MULTIPOINT;
+    } else if (StringUtils.equalsIgnoreCase(wktName, LINESTRING.getTypeName())) {
+      return LINESTRING;
+    } else if (StringUtils.equalsIgnoreCase(wktName, MULTILINESTRING.getTypeName())) {
+      return MULTILINESTRING;
+    } else if (StringUtils.equalsIgnoreCase(wktName, POLYGON.getTypeName())) {
+      return POLYGON;
+    } else if (StringUtils.equalsIgnoreCase(wktName, MULTIPOLYGON.getTypeName())) {
+      return MULTIPOLYGON;
+    } else if (StringUtils.equalsIgnoreCase(wktName, GEOMETRYCOLLECTION.getTypeName())) {
+      return GEOMETRYCOLLECTION;
+    } else if (StringUtils.equalsIgnoreCase(wktName, GEOMETRY.getTypeName())) {
+      return GEOMETRY;
+    }
+    return UNKNOWN;
+  }
+
+  static EGeometryType forTypeName(String typeName) {
+    return forWktName(typeName);
+  }
+
+  /**
+   * Checks if the given geometry is a {@link LineString} (or {@link MultiLineString}) geometry.
+   *
+   * @param geometry the geometry to check.
+   * @return <code>true</code> if there are lines in there.
+   */
+  static bool isGeomLine(Geometry geometry) {
+    if (geometry is LineString || geometry is MultiLineString) {
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Checks if the given geometry is a {@link Polygon} (or {@link MultiPolygon}) geometry.
+   *
+   * @param geometry the geometry to check.
+   * @return <code>true</code> if there are polygons in there.
+   */
+  static bool isGeomPolygon(Geometry geometry) {
+    if (geometry is Polygon || geometry is MultiPolygon) {
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Checks if the given geometry is a {@link Point} (or {@link MultiPoint}) geometry.
+   *
+   * @param geometry the geometry to check.
+   * @return <code>true</code> if there are points in there.
+   */
+  static bool isGeomPoint(Geometry geometry) {
+    if (geometry is Point || geometry is MultiPoint) {
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Returns the base geometry type for a spatialite geometries types.
+   *
+   * @param value the code.
+   * @return the type.
+   */
+  static EGeometryType fromGeometryTypeCode(int value) {
+    switch (value) {
+      case 0:
+        return GEOMETRY;
+      case 1:
+        return POINT;
+      case 2:
+        return LINESTRING;
+      case 3:
+        return POLYGON;
+      case 4:
+        return MULTIPOINT;
+      case 5:
+        return MULTILINESTRING;
+      case 6:
+        return MULTIPOLYGON;
+      case 7:
+        return GEOMETRYCOLLECTION;
+/*
+         * XYZ
+         */
+      case 1000:
+        return GEOMETRY;
+      case 1001:
+        return POINT;
+      case 1002:
+        return LINESTRING;
+      case 1003:
+        return POLYGON;
+      case 1004:
+        return MULTIPOINT;
+      case 1005:
+        return MULTILINESTRING;
+      case 1006:
+        return MULTIPOLYGON;
+      case 1007:
+        return GEOMETRYCOLLECTION;
+/*
+         * XYM
+         */
+      case 2000:
+        return GEOMETRY;
+      case 2001:
+        return POINT;
+      case 2002:
+        return LINESTRING;
+      case 2003:
+        return POLYGON;
+      case 2004:
+        return MULTIPOINT;
+      case 2005:
+        return MULTILINESTRING;
+      case 2006:
+        return MULTIPOLYGON;
+      case 2007:
+        return GEOMETRYCOLLECTION;
+/*
+         * XYZM
+         */
+      case 3000:
+        return GEOMETRY;
+      case 3001:
+        return POINT;
+      case 3002:
+        return LINESTRING;
+      case 3003:
+        return POLYGON;
+      case 3004:
+        return MULTIPOINT;
+      case 3005:
+        return MULTILINESTRING;
+      case 3006:
+        return MULTIPOLYGON;
+      case 3007:
+        return GEOMETRYCOLLECTION;
+      default:
+        break;
+    }
+    return UNKNOWN;
+  }
+
+// ESpatialiteGeometryType toSpatialiteGeometryType() {
+//switch( this ) {
+//case LINESTRING:
+//return ESpatialiteGeometryType.LINESTRING_XY;
+//case MULTILINESTRING:
+//return ESpatialiteGeometryType.MULTILINESTRING_XY;
+//case POINT:
+//return ESpatialiteGeometryType.POINT_XY;
+//case MULTIPOINT:
+//return ESpatialiteGeometryType.MULTIPOINT_XY;
+//case POLYGON:
+//return ESpatialiteGeometryType.POLYGON_XY;
+//case MULTIPOLYGON:
+//return ESpatialiteGeometryType.MULTIPOLYGON_XY;
+//case GEOMETRY:
+//return ESpatialiteGeometryType.GEOMETRY_XY;
+//case GEOMETRYCOLLECTION:
+//return ESpatialiteGeometryType.GEOMETRYCOLLECTION_XY;
+//default:
+//return null;
+//}
+//}
+
+  String getTypeName() {
+    return typeName;
+  }
+}
