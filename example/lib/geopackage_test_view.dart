@@ -41,9 +41,9 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
       Map<String, List<String>> tablesMap = await db.getTablesMap(false);
       List<String> tables = tablesMap[GeopackageTableNames.USERDATA];
       assert(tables.length == 16);
-      tiles.add(_addInfoTile("Open db", "Found ${tables.length} tables."));
+      tiles.add(_addInfoTile("Check tables", "Found ${tables.length} tables."));
     } catch (e) {
-      tiles.add(_addInfoTile("Open db", "ERROR: ${e.toString()}", color: Colors.red));
+      tiles.add(_addInfoTile("Check tables", "ERROR: ${e.toString()}", color: Colors.red));
       return tiles;
     }
 

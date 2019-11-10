@@ -572,7 +572,8 @@ class GeopackageTableNames {
     "gpkg_ogr_contents", //
     "gpkg_spatial_index", //
     "spatial_ref_sys", //
-    "st_spatial_ref_sys" //
+    "st_spatial_ref_sys", //
+    "android_metadata", //
   ];
 
   // INTERNAL DATA

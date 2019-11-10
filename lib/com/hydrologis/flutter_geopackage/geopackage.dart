@@ -298,7 +298,7 @@ class GeopackageDb {
 
   Future<Map<String, List<String>>> getTablesMap(bool doOrder) async {
     List<String> tableNames = await getTables(doOrder);
-    HashMap<String, List<String>> tablesMap = GeopackageTableNames.getTablesSorted(tableNames, doOrder);
+    var tablesMap = GeopackageTableNames.getTablesSorted(tableNames, doOrder);
     return tablesMap;
   }
 
@@ -787,8 +787,6 @@ class GeopackageDb {
    * @param e feature entry to create spatial index for
    */
   Future<void> createSpatialIndex(String tableName, String geometryName) async {
-    Map<String, String> properties = new HashMap<String, String>();
-
     String pk = await getPrimaryKey(tableName);
     if (pk == null) {
       throw new IOException("Spatial index only supported for primary key of single column.");
