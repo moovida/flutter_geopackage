@@ -24,7 +24,7 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
   Future<List<Widget>> getWidgets() async {
     var path = "/storage/emulated/0/gdal_sample.gpkg";
 
-    List<ListTile> tiles = [];
+    List<Widget> tiles = [];
 
     tiles.add(_addInfoTile("Open db", "Try opening: " + path));
     GeopackageDb db = GeopackageDb(path);
@@ -46,6 +46,8 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
       tiles.add(_addInfoTile("Open db", "ERROR: ${e.toString()}", color: Colors.red));
       return tiles;
     }
+
+    return tiles;
 
 //      String point2DTable = "point2d";
 //      assertTrue(db.hasSpatialIndex(point2DTable));
