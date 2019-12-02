@@ -17,6 +17,7 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^0.1.2
 
+  intl: ^0.16.0
   dart_jts: ^0.0.4+2
 #  dart_jts:
 #    path: ../dart_jts
