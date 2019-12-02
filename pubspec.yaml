@@ -15,7 +15,9 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^0.1.2
 
-  dart_jts: ^0.0.4+1
+  dart_jts: ^0.0.4+2
+#  dart_jts:
+#    path: ../dart_jts
 
   # MIT
   sqflite: ^1.1.7+2

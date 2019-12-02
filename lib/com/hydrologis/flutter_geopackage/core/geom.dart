@@ -30,6 +30,7 @@ class GeopackageBinaryType {
   static List<GeopackageBinaryType> get values => [StandardGeoPackageBinary, ExtendedGeoPackageBinary];
 
   final int value;
+
   const GeopackageBinaryType._(this.value);
 
   static GeopackageBinaryType valueOf(int b) {
@@ -62,7 +63,8 @@ class GeometryHeaderFlags {
   }
 
   Endian getEndianess() {
-    return (b & MASK_ENDIANESS) == 1 ? Endian.little : Endian.big;
+    var endian = (b & MASK_ENDIANESS) == 1 ? Endian.little : Endian.big;
+    return endian;
   }
 
   void setEndianess(Endian endian) {
@@ -138,143 +140,73 @@ class GeometryHeader {
   }
 }
 
-/**
- * Translates a GeoPackage geometry BLOB to a vividsolutions Geometry.
- *
- *
- * To get from sql resultset:
- * List<int> geomBytes = rs.getBytes(index);
- *   if (geomBytes != null) {
- *   Geometry geometry = new GeoPkgGeomReader(geomBytes).get();
- *
- * @author Justin Deoliveira
- * @author Niels Charlier
- */
+/// Translates a GeoPackage geometry BLOB to a vividsolutions Geometry.
+///
+///
+/// To get from sql resultset:
+/// List<int> geomBytes = rs.getBytes(index);
+///   if (geomBytes != null) {
+///   Geometry geometry = new GeoPkgGeomReader(geomBytes).get();
+///
+/// @author Justin Deoliveira
+/// @author Niels Charlier
 class GeoPkgGeomReader {
   static final GeometryFactory DEFAULT_GEOM_FACTORY = new GeometryFactory.defaultPrecision();
 
-  Uint8List dataBuffer;
+  Uint8List _dataBuffer;
 
-  GeometryHeader header = null;
+  GeometryHeader _header;
 
-  Geometry geometry = null;
+  Geometry _geometry;
 
-  GeometryFactory geomFactory = DEFAULT_GEOM_FACTORY;
+  GeometryFactory _geomFactory = DEFAULT_GEOM_FACTORY;
 
-  ByteOrderDataInStream din;
+  ByteOrderDataInStream _din;
 
-  num simplificationDistance;
   String geometryType;
 
   GeoPkgGeomReader(List<int> ins) {
     if (ins is Uint8List) {
-      dataBuffer = ins;
+      _dataBuffer = ins;
     } else {
-      dataBuffer = Uint8List.fromList(ins);
+      _dataBuffer = Uint8List.fromList(ins);
     }
   }
 
-  GeometryHeader getHeader() {
-    if (header == null) {
-      header = readHeader();
+  GeometryHeader _getHeader() {
+    if (_header == null) {
+      _header = readHeader();
     }
-    return header;
+    return _header;
   }
 
   Geometry get() {
-    if (header == null) {
-      header = readHeader();
+    if (_header == null) {
+      _header = readHeader();
     }
-
-    if (geometry == null) {
-      Envelope envelope = header.getEnvelope();
-      if (simplificationDistance != null &&
-          geometryType != null &&
-          header.getFlags().getEnvelopeIndicator() != EnvelopeType.NONE &&
-          envelope.getWidth() < simplificationDistance.toDouble() &&
-          envelope.getHeight() < simplificationDistance.toDouble()) {
-        Geometry simplified = getSimplifiedShape(geometryType, envelope.getMinX(), envelope.getMinY(), envelope.getMaxX(), envelope.getMaxY());
-        if (simplified != null) {
-          geometry = simplified;
-        }
-      }
-
-      if (geometry == null) {
-        geometry = read();
-      }
+    if (_geometry == null) {
+      _geometry = _read();
     }
-    return geometry;
+    return _geometry;
   }
 
-  Geometry getSimplifiedShape(String type, double minX, double minY, double maxX, double maxY) {
-    CoordinateSequenceFactory csf = geomFactory.getCoordinateSequenceFactory();
-    final POINT_TYPE = "Point";
-    final MULITPOINT_TYPE = "MultiPoint";
-    final LINE_TYPE = "LineString";
-    final RING_TYPE = "LinearRing";
-    final MULTILINE_TYPE = "MultiLineString";
-    final POLYGON_TYPE = "Polygon";
-    final MULTIPOLYOGN_TYPE = "MultiPolygon";
-    final GEOMETRYCOLLECTION_TYPE = "GeometryCollection";
-    if (POINT_TYPE == type) {
-      CoordinateSequence cs = createCS(csf, 1, 2);
-      cs.setOrdinate(0, 0, (minX + maxX) / 2);
-      cs.setOrdinate(0, 1, (minY + maxY) / 2);
-      return geomFactory.createPointSeq(cs);
-    } else if (MULITPOINT_TYPE == type) {
-      Point p = getSimplifiedShape(POINT_TYPE, minX, minY, maxX, maxY);
-      return geomFactory.createMultiPoint([p]);
-    } else if (LINE_TYPE == type || RING_TYPE == type) {
-      CoordinateSequence cs = createCS(csf, 2, 2);
-      cs.setOrdinate(0, 0, minX);
-      cs.setOrdinate(0, 1, minY);
-      cs.setOrdinate(1, 0, maxX);
-      cs.setOrdinate(1, 1, maxY);
-      return geomFactory.createLineStringSeq(cs);
-    } else if (MULTILINE_TYPE == type) {
-      LineString ls = getSimplifiedShape(LINE_TYPE, minX, minY, maxX, maxY);
-      return geomFactory.createMultiLineString([ls]);
-    } else if (POLYGON_TYPE == type) {
-      CoordinateSequence cs = createCS(csf, 5, 2);
-      cs.setOrdinate(0, 0, minX);
-      cs.setOrdinate(0, 1, minY);
-      cs.setOrdinate(1, 0, minX);
-      cs.setOrdinate(1, 1, maxY);
-      cs.setOrdinate(2, 0, maxX);
-      cs.setOrdinate(2, 1, maxY);
-      cs.setOrdinate(3, 0, maxX);
-      cs.setOrdinate(3, 1, minY);
-      cs.setOrdinate(4, 0, minX);
-      cs.setOrdinate(4, 1, minY);
-      LinearRing ring = geomFactory.createLinearRingSeq(cs);
-      return geomFactory.createPolygon(ring, null);
-    } else if (MULTIPOLYOGN_TYPE == type || GEOMETRYCOLLECTION_TYPE == type) {
-      Polygon polygon = getSimplifiedShape(POLYGON_TYPE, minX, minY, maxX, maxY);
-      return geomFactory.createMultiPolygon([polygon]);
-    } else {
-      // don't really know what to do with this case, guessing a type might break expectations
-      return null;
-    }
-  }
 
   Envelope getEnvelope() {
-    if (getHeader().getFlags().getEnvelopeIndicator() == EnvelopeType.NONE) {
+    if (_getHeader().getFlags().getEnvelopeIndicator() == EnvelopeType.NONE) {
       return get().getEnvelopeInternal();
     } else {
-      return getHeader().getEnvelope();
+      return _getHeader().getEnvelope();
     }
   }
 
-  Geometry read() {
-    // header must be read!
-// read the geometry
-    WKBReader wkbReader = new WKBReader.withFactory(geomFactory);
-    Geometry g = wkbReader.read(dataBuffer.sublist(din.readOffset));
-    g.setSRID(header.getSrid());
+  Geometry _read() {
+    WKBReader wkbReader = new WKBReader.withFactory(_geomFactory);
+    Geometry g = wkbReader.read(_dataBuffer.sublist(_din.readOffset));
+    g.setSRID(_header.getSrid());
     return g;
   }
 
-/*
+   /*
     * OptimizedGeoPackageBinary {
     * byte[3] magic = 0x47504230; // 'GPB'
     * byte flags;                 // see flags layout below
@@ -308,116 +240,44 @@ class GeoPkgGeomReader {
 // read first 4 bytes
 // TODO: something with the magic number
 //    byte[] buf = new byte[4];
-    din = ByteOrderDataInStream(ByteData.view(dataBuffer.buffer));
-    din.readByte();
-    din.readByte();
-    din.readByte();
-    int flag = din.readByte();
+    _din = ByteOrderDataInStream(_dataBuffer);
+    var b1 = _din.readByte();
+    var b2 = _din.readByte();
+    var b3 = _din.readByte();
+    int flag = _din.readByte();
 
 // next byte flags
     h.setFlags(new GeometryHeaderFlags(flag)); //(byte) buf[3]));
 
 // set endianess
 //    ByteOrderDataInStream din = new ByteOrderDataInStream(input);
-    din.setOrder(h.getFlags().getEndianess());
+    _din.setOrder(h.getFlags().getEndianess());
 
 // read the srid
-    h.setSrid(din.readInt());
+    h.setSrid(_din.readInt());
 
 // read the envelope
     EnvelopeType envelopeIndicator = h.getFlags().getEnvelopeIndicator();
     if (envelopeIndicator != EnvelopeType.NONE) {
-      double x1 = din.readDouble();
-      double x2 = din.readDouble();
-      double y1 = din.readDouble();
-      double y2 = din.readDouble();
+      double x1 = _din.readDouble();
+      double x2 = _din.readDouble();
+      double y1 = _din.readDouble();
+      double y2 = _din.readDouble();
 
       if (envelopeIndicator.value > 1) {
 // 2 = minz,maxz; 3 = minm,maxm - we ignore these for now
-        din.readDouble();
-        din.readDouble();
+        _din.readDouble();
+        _din.readDouble();
       }
 
       if (envelopeIndicator.value > 3) {
 // 4 = minz,maxz,minm,maxm - we ignore these for now
-        din.readDouble();
-        din.readDouble();
+        _din.readDouble();
+        _din.readDouble();
       }
 
       h.setEnvelope(new Envelope(x1, x2, y1, y2));
     }
     return h;
-  }
-
-  /** @return the factory */
-  GeometryFactory getFactory() {
-    return geomFactory;
-  }
-
-  /** @param factory the factory to set */
-  void setFactory(GeometryFactory factory) {
-    if (factory != null) {
-      this.geomFactory = factory;
-    }
-  }
-
-  void setSimplificationDistance(double simplificationDistance) {
-    this.simplificationDistance = simplificationDistance;
-  }
-
-  void setGeometryType(String geometryType) {
-    this.geometryType = geometryType;
-  }
-
-  /**
-   * Creates a {@link CoordinateSequence} using the provided factory confirming the provided size
-   * and dimension are respected.
-   *
-   * <p>If the requested dimension is larger than the CoordinateSequence implementation can
-   * provide, then a sequence of maximum possible dimension should be created. An error should not
-   * be thrown.
-   *
-   * <p>This method is functionally identical to calling csFactory.create(size,dim) - it contains
-   * additional logic to work around a limitation on the commonly used
-   * CoordinateArraySequenceFactory.
-   *
-   * @param size the number of coordinates in the sequence
-   * @param dimension the dimension of the coordinates in the sequence
-   */
-  static CoordinateSequence createCS(CoordinateSequenceFactory csFactory, int size, int dimension) {
-    // the coordinates don't have measures
-    return createCSMEas(csFactory, size, dimension, 0);
-  }
-
-  /**
-   * Creates a {@link CoordinateSequence} using the provided factory confirming the provided size
-   * and dimension are respected.
-   *
-   * <p>If the requested dimension is larger than the CoordinateSequence implementation can
-   * provide, then a sequence of maximum possible dimension should be created. An error should not
-   * be thrown.
-   *
-   * <p>This method is functionally identical to calling csFactory.create(size,dim) - it contains
-   * additional logic to work around a limitation on the commonly used
-   * CoordinateArraySequenceFactory.
-   *
-   * @param size the number of coordinates in the sequence
-   * @param dimension the dimension of the coordinates in the sequence
-   * @param measures the measures of the coordinates in the sequence
-   */
-  static CoordinateSequence createCSMEas(CoordinateSequenceFactory csFactory, int size, int dimension, int measures) {
-    CoordinateSequence cs;
-    if (csFactory is CoordinateArraySequenceFactory && dimension == 1) {
-      // work around JTS 1.14 CoordinateArraySequenceFactory regression ignoring provided
-      // dimension
-      cs = new CoordinateArraySequence.fromSizeDimensionMeasures(size, dimension, measures);
-    } else {
-      cs = csFactory.createSizeDimMeas(size, dimension, measures);
-    }
-    if (cs.getDimension() != dimension) {
-      // illegal state error, try and fix
-      throw StateError("Unable to use $csFactory to produce CoordinateSequence with dimension $dimension");
-    }
-    return cs;
   }
 }

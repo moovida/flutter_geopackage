@@ -30,6 +30,10 @@ dependencies:
   flutter_geopackage:
     path: ../../flutter_geopackage
 
+  dart_jts: ^0.0.4+2
+#  dart_jts:
+#    path: ../../dart_jts
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

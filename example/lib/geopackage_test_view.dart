@@ -26,9 +26,9 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
 
     List<Widget> tiles = [];
 
-    tiles.add(_addInfoTile("Open db", "Try opening: " + path));
     GeopackageDb db = GeopackageDb(path);
     try {
+      tiles.add(_addInfoTile("Open db", "Try opening: " + path));
       await db.openOrCreate();
       tiles.add(_addInfoTile("Open db", "Done"));
     } catch (e) {
@@ -36,7 +36,8 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
       return tiles;
     }
 
-    tiles.add(_addInfoTile("Check tables", "Gather tables."));
+    tiles.add(_addInfoTile("General info", "Sqlite version supports spatial index (rtree): ${db.supportsSpatialIndex}\nGeopackage version: ${db.version}"));
+
     try {
       Map<String, List<String>> tablesMap = await db.getTablesMap(false);
       List<String> tables = tablesMap[GeopackageTableNames.USERDATA];
@@ -47,67 +48,161 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
       return tiles;
     }
 
-    return tiles;
+    try {
+      String point2DTable = "point2d";
+      bool hasSpatialIndex = await db.hasSpatialIndex(point2DTable);
 
-//      String point2DTable = "point2d";
-//      assertTrue(db.hasSpatialIndex(point2DTable));
-//      GeometryColumn geometryColumn = db.getGeometryColumnsForTable(point2DTable);
-//      assertEquals("geom", geometryColumn.geometryColumnName);
-//      assertEquals(0, geometryColumn.srid);
-//      List<Geometry> geometries = db.getGeometriesIn(point2DTable, (Envelope) null);
-//      geometries.removeIf(g -> g == null);
-//      assertEquals(1, geometries.size());
-//      assertEquals("POINT (1 2)", geometries.get(0).toText());
-//
-//      String line2DTable = "linestring2d";
-//      assertTrue(db.hasSpatialIndex(line2DTable));
-//      geometryColumn = db.getGeometryColumnsForTable(line2DTable);
-//      assertEquals("geom", geometryColumn.geometryColumnName);
-//      assertEquals(4326, geometryColumn.srid);
-//      geometries = db.getGeometriesIn(line2DTable, (Envelope) null);
-//      geometries.removeIf(g -> g == null);
-//      assertEquals(1, geometries.size());
-//      assertEquals("LINESTRING (1 2, 3 4)", geometries.get(0).toText());
-//
-//      // with spatial index
-//      String polygon2DTable = "polygon2d";
-//      assertTrue(db.hasSpatialIndex(polygon2DTable));
-//      geometryColumn = db.getGeometryColumnsForTable(polygon2DTable);
-//      assertEquals("geom", geometryColumn.geometryColumnName);
-//      assertEquals(32631, geometryColumn.srid);
-//      geometries = db.getGeometriesIn(polygon2DTable, new Envelope(-1, 11, -1, 11));
-//      geometries.removeIf(g -> g == null);
-//      assertEquals(1, geometries.size());
-//      assertEquals("POLYGON ((0 0, 0 10, 10 10, 10 0, 0 0), (1 1, 1 9, 9 9, 9 1, 1 1))", geometries.get(0).toText());
-//
-//      // has no spatial index
-//      String multipoint2DTable = "multipoint2d";
-//      assertFalse(db.hasSpatialIndex(multipoint2DTable));
-//      geometries = db.getGeometriesIn(multipoint2DTable, (Envelope) null);
-//      geometries.removeIf(g -> g == null);
-//      assertEquals(1, geometries.size());
-//      assertEquals("MULTIPOINT ((0 1), (2 3))", geometries.get(0).toText());
-//
-//      String geomcollection2DTable = "geomcollection2d";
-//      assertTrue(db.hasSpatialIndex(geomcollection2DTable));
-//      geometries = db.getGeometriesIn(geomcollection2DTable, (Envelope) null);
-//      geometries.removeIf(g -> g == null);
-//      assertEquals(4, geometries.size());
-//
-//      // with spatial index
-//      geometries = db.getGeometriesIn(geomcollection2DTable, new Envelope(9, 11, 9, 11));
-//      assertEquals(2, geometries.size());
-//
-//      String point3DTable = "point3d";
-//      assertTrue(db.hasSpatialIndex(point3DTable));
-//      FeatureEntry feature = db.feature(point3DTable);
-//      assertEquals("POINT".toLowerCase(), feature.getGeometryType().getTypeName().toLowerCase());
-//      geometries = db.getGeometriesIn(point3DTable, (Envelope) null);
-//      geometries.removeIf(g -> g == null);
-//      assertEquals(1, geometries.size());
-//
-//      // 3D geoms not supported by JTS WKBReader at the time being
-//      assertEquals("POINT (1 2)", geometries.get(0).toText());
+      GeometryColumn geometryColumn = await db.getGeometryColumnsForTable(point2DTable);
+
+      List<Geometry> geometries = await db.getGeometriesIn(point2DTable);
+      geometries.removeWhere((g) => g == null);
+
+      assert(1 == geometries.length);
+      assert("POINT (1 2)" == geometries[0].toText());
+
+      tiles.add(_addInfoTile(
+          "Table point2d",
+          "Has Spatial index: $hasSpatialIndex \n" + //
+              "Geometry col name (expected: geom): ${geometryColumn.geometryColumnName} \n" + //
+              "SRID (expected 0): ${geometryColumn.srid} \n" + //
+              "Found ${geometries.length} geometries. \n" + //
+              "Geometry: " +
+              geometries[0].toText() //
+          ));
+    } catch (e) {
+      tiles.add(_addInfoTile("Table point2d", "ERROR: ${e.toString()}", color: Colors.red));
+      return tiles;
+    }
+
+    try {
+      String line2DTable = "linestring2d";
+      bool hasSpatialIndex = await db.hasSpatialIndex(line2DTable);
+
+      GeometryColumn geometryColumn = await db.getGeometryColumnsForTable(line2DTable);
+      assert(4326 == geometryColumn.srid);
+      List<Geometry> geometries = await db.getGeometriesIn(line2DTable);
+      geometries.removeWhere((g) => g == null);
+      assert(1 == geometries.length);
+      assert("LINESTRING (1 2, 3 4)" == geometries[0].toText());
+
+      tiles.add(_addInfoTile(
+          "Table linestring2d",
+          "Has Spatial index: $hasSpatialIndex \n" + //
+              "Geometry col name (expected: geom): ${geometryColumn.geometryColumnName} \n" + //
+              "SRID (expected 4326): ${geometryColumn.srid} \n" + //
+              "Found ${geometries.length} geometries. \n" + //
+              "Geometry: " +
+              geometries[0].toText() //
+          ));
+    } catch (e) {
+      tiles.add(_addInfoTile("Table linestring2d", "ERROR: ${e.toString()}", color: Colors.red));
+      return tiles;
+    }
+
+    try {
+      // with spatial index
+      String polygon2DTable = "polygon2d";
+      bool hasSpatialIndex = await db.hasSpatialIndex(polygon2DTable);
+      GeometryColumn geometryColumn = await db.getGeometryColumnsForTable(polygon2DTable);
+      assert(32631 == geometryColumn.srid);
+      List<Geometry> geometries = await db.getGeometriesIn(polygon2DTable);
+      geometries.removeWhere((g) => g == null);
+
+      assert(1 == geometries.length);
+      assert("POLYGON ((0 0, 0 10, 10 10, 10 0, 0 0), (1 1, 1 9, 9 9, 9 1, 1 1))" == geometries[0].toText());
+
+      tiles.add(_addInfoTile(
+          "Table polygon2d",
+          "Has Spatial index: $hasSpatialIndex \n" + //
+              "Geometry col name (expected: geom): ${geometryColumn.geometryColumnName} \n" + //
+              "SRID (expected 32631): ${geometryColumn.srid} \n" + //
+              "Found ${geometries.length} geometries. \n" + //
+              "Geometry: " +
+              geometries[0].toText() //
+          ));
+    } catch (e) {
+      tiles.add(_addInfoTile("Table polygon2d", "ERROR: ${e.toString()}", color: Colors.red));
+      return tiles;
+    }
+
+    try {
+      // no spatial index
+      String multipoint2DTable = "multipoint2d";
+      bool hasSpatialIndex = await db.hasSpatialIndex(multipoint2DTable);
+      assert(!hasSpatialIndex);
+      List<Geometry> geometries = await db.getGeometriesIn(multipoint2DTable);
+      geometries.removeWhere((g) => g == null);
+
+      assert(1 == geometries.length);
+      assert("MULTIPOINT ((0 1), (2 3))" == geometries[0].toText());
+
+      tiles.add(_addInfoTile(
+          "Table multipoint2d",
+          "Has Spatial index: $hasSpatialIndex \n" + //
+              "Found ${geometries.length} geometries. \n" + //
+              "Geometry: " +
+              geometries[0].toText() //
+          ));
+    } catch (e) {
+      tiles.add(_addInfoTile("Table multipoint2d", "ERROR: ${e.toString()}", color: Colors.red));
+      return tiles;
+    }
+
+    try {
+      String geomcollection2DTable = "geomcollection2d";
+      bool hasSpatialIndex = await db.hasSpatialIndex(geomcollection2DTable);
+      assert(hasSpatialIndex);
+
+      List<Geometry> geometries = await db.getGeometriesIn(geomcollection2DTable);
+      geometries.removeWhere((g) => g == null);
+      assert(4 == geometries.length);
+
+      // using the spatial index (or just bounds if no index supported)
+      var env = Envelope(9, 11, 9, 11);
+      List<Geometry> geometriesE = await db.getGeometriesIn(geomcollection2DTable, envelope: env);
+      assert(2 == geometriesE.length);
+
+      Geometry geom = WKTReader().read("POLYGON ((2.65 5.3, 4.875 3.7, 2.9 5.65, 2.65 5.3))");
+      List<Geometry> geometriesPol = await db.getGeometriesIntersecting(geomcollection2DTable, geometry: geom);
+      assert(1 == geometriesPol.length);
+
+      tiles.add(_addInfoTile(
+          "Table geomcollection2d",
+          "Has Spatial index: $hasSpatialIndex \n" + //
+              "Found ${geometries.length} geometries. \n" + //
+              "Found ${geometriesE.length} geometries in $env. \n" + //
+              "Found ${geometriesPol.length} geometries intersecting $geom. \n\n" + //
+              "Geometry: " +
+              geometries[0].toText() //
+          ));
+    } catch (e) {
+      tiles.add(_addInfoTile("Table geomcollection2d", "ERROR: ${e.toString()}", color: Colors.red));
+      return tiles;
+    }
+
+    try {
+      String point3DTable = "point3d";
+      bool hasSpatialIndex = await db.hasSpatialIndex(point3DTable);
+      assert(hasSpatialIndex);
+
+      List<Geometry> geometries = await db.getGeometriesIn(point3DTable);
+      geometries.removeWhere((g) => g == null);
+      assert(1 == geometries.length);
+      assert("POINT (1 2)" == geometries[0].toText());
+
+      tiles.add(_addInfoTile(
+          "Table point3d",
+          "Has Spatial index: $hasSpatialIndex \n" + //
+              "Found ${geometries.length} geometries. \n" + //
+              "Geometry: " +
+              geometries[0].toText() //
+          ));
+    } catch (e) {
+      tiles.add(_addInfoTile("Table point3d", "ERROR: ${e.toString()}", color: Colors.red));
+      return tiles;
+    }
+
+    return tiles;
   }
 
   @override

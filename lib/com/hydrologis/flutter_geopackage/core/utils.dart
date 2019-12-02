@@ -627,3 +627,15 @@ class GeopackageTableNames {
     return tablesMap;
   }
 }
+
+class DbsUtilities {
+  /// Check the tablename and fix it if necessary.
+  ///
+  /// @param tableName the name to check.
+  /// @return the fixed name.
+  static String fixTableName(String tableName) {
+    double num = double.tryParse(tableName.substring(0, 1)) ?? null;
+    if (num != null) return "'" + tableName + "'";
+    return tableName;
+  }
+}
