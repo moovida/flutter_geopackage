@@ -2,15 +2,14 @@
 
 Geopackage Example App
 
-## Getting Started
+# VERY IMPORTANT REGARDING THE EXAMPLE APP
 
-This project is a starting point for a Flutter application.
+The example app works only on Android due to its dependence on the storage path 
+of the test geopackage database. IOS users will need to change the path from which
+the geopackage database is pulled. No big issue, but it is not automatic yet (pull 
+requests are welcome, I don't really care about IOS at the time being, so it might 
+take a while before I do it).
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://flutter.dev/docs/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://flutter.dev/docs/cookbook)
-
-For help getting started with Flutter, view our
-[online documentation](https://flutter.dev/docs), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+For the example to work, you need to copy the **gdal_sample.gpkg** file that is in the test folder of the 
+main library (flutter_geopackage) to the main storage of the device, i.e. it has to be available 
+in **/storage/emulated/0/gdal_sample.gpkg** since the path is hardcoded (see above comment).

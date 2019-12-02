@@ -1,8 +1,9 @@
 # flutter_geopackage
 
-A module to support OGC geopackage with sqlite.
+A module to support **OGC geopackage** with sqlite.
 
-## Getting Started
+At the moment, the vector (features) part of geopackage is supported.
 
-For help getting started with Flutter, view our online
-[documentation](https://flutter.dev/).
+**View the example README for instructions on how to integrate it in an app.**
+
+
