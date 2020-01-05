@@ -16,7 +16,9 @@ class SQLException implements Exception {
 class QueryResult {
   String geomName;
 
-  List<Map<String, dynamic>> data;
+  List<Geometry> geoms = [];
+
+  List<Map<String, dynamic>> data = [];
 }
 
 /**
