@@ -798,55 +798,6 @@ class GeopackageDb {
     return queryResult;
   }
 
-//  QueryResult getTableRecordsMapFromRawSql(String sql, int limit) {
-//    QueryResult queryResult = new QueryResult();
-//    try
-//    (IHMStatement stmt = sqliteDb.getConnectionInternal().createStatement();
-//    IHMResultSet rs = stmt.executeQuery(sql)
-//    ) {
-//    IHMResultSetMetaData rsmd = rs.getMetaData();
-//    int columnCount = rsmd.getColumnCount();
-//    int geometryIndex = -1;
-//    for( int i = 1; i <= columnCount; i++ ) {
-//    String columnName = rsmd.getColumnName(i);
-//    queryResult.names.add(columnName);
-//    String columnTypeName = rsmd.getColumnTypeName(i);
-//    queryResult.types.add(columnTypeName);
-//    if (ESpatialiteGeometryType.isGeometryName(columnTypeName)) {
-//    geometryIndex = i;
-//    queryResult.geometryIndex = i - 1;
-//    }
-//    }
-//    int count = 0;
-//    IGeometryParser gp = getType().getGeometryParser();
-//    long start = System.currentTimeMillis();
-//    while( rs.next() ) {
-//    Object[] rec = new Object[columnCount];
-//    for( int j = 1; j <= columnCount; j++ ) {
-//    if (j == geometryIndex) {
-//    Geometry geometry = gp.fromResultSet(rs, j);
-//    if (geometry != null) {
-//    rec[j - 1] = geometry;
-//    }
-//    } else {
-//    Object object = rs.getObject(j);
-//    if (object instanceof Clob) {
-//    object = rs.getString(j);
-//    }
-//    rec[j - 1] = object;
-//    }
-//    }
-//    queryResult.data.add(rec);
-//    if (limit > 0 && ++count > (limit - 1)) {
-//    break;
-//    }
-//    }
-//    long end = System.currentTimeMillis();
-//    queryResult.queryTimeMillis = end - start;
-//    return queryResult;
-//    }
-//  }
-
   /**
    * Execute a query from raw sql and put the result in a csv file.
    *
