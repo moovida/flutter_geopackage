@@ -777,6 +777,27 @@ class GeopackageDb {
     createSpatialIndex(tableName, geomColName);
   }
 
+  Future<QueryResult> getTableData(String tableName, [int limit]) async {
+    QueryResult queryResult = new QueryResult();
+
+    GeometryColumn geometryColumn = await getGeometryColumnsForTable(tableName);
+    queryResult.geomName = geometryColumn.geometryColumnName;
+
+    String sql = "select * from " + tableName;
+    if (limit != null) {
+      sql += "limit $limit";
+    }
+    List<Map<String, dynamic>> result = await _sqliteDb.query(sql);
+    result.forEach((map) {
+      var geomBytes = map[queryResult.geomName];
+      Geometry geom = GeoPkgGeomReader(geomBytes).get();
+      map[queryResult.geomName] = geom;
+    });
+    queryResult.data = result;
+
+    return queryResult;
+  }
+
 //  QueryResult getTableRecordsMapFromRawSql(String sql, int limit) {
 //    QueryResult queryResult = new QueryResult();
 //    try

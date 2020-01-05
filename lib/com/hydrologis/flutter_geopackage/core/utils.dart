@@ -12,44 +12,11 @@ class SQLException implements Exception {
  * A simple table info.
  *
  * <p>If performance is needed, this should not be used.</p>
- *
- * @author Andrea Antonello (www.hydrologis.com)
  */
 class QueryResult {
-  /**
-   * Index of the primary key (if available), that can be used for updates.
-   */
-  int pkIndex = -1;
+  String geomName;
 
-  /**
-   * The index of the geometry, if available.
-   */
-  int geometryIndex = -1;
-
-  /**
-   * The names of the columns of the result.
-   */
-  List<String> names = [];
-
-  /**
-   * The types of the columns of the result.
-   */
-  List<String> types = [];
-
-  /**
-   * The records of data of each column.
-   */
-  List<List<dynamic>> data = [];
-
-  /**
-   * The optional geometries for each record.
-   */
-  List<Geometry> geometries = [];
-
-  /**
-   * The time taken to complete the query.
-   */
-  int queryTimeMillis = 0;
+  List<Map<String, dynamic>> data;
 }
 
 /**
