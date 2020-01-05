@@ -613,6 +613,8 @@ class GeopackageDb {
 
   /// Get the geometries of a table inside a given envelope.
   ///
+  /// Note that the primary key value is put inside the geom's userdata.
+  ///
   /// @param tableName
   ///            the table name.
   /// @param envelope
@@ -636,8 +638,9 @@ class GeopackageDb {
       }
     }
 
+    String pk = await getPrimaryKey(tableName);
     GeometryColumn gCol = await getGeometryColumnsForTable(tableName);
-    String sql = "SELECT " + pre + gCol.geometryColumnName + post + " as the_geom FROM " + DbsUtilities.fixTableName(tableName);
+    String sql = "SELECT " + pre + gCol.geometryColumnName + post + " as the_geom, $pk FROM " + DbsUtilities.fixTableName(tableName);
 
     if (envelope != null) {
       double x1 = envelope.getMinX();
@@ -657,7 +660,9 @@ class GeopackageDb {
     res.forEach((map) {
       var geomBytes = map["the_geom"];
       if (geomBytes != null) {
-        var geom = GeoPkgGeomReader(geomBytes).get();
+        Geometry geom = GeoPkgGeomReader(geomBytes).get();
+        var pkValue = map[pk];
+        geom.setUserData(pkValue);
         if (_supportsRtree || envelope == null) {
           geoms.add(geom);
         } else if (envelope != null && geom.getEnvelopeInternal().intersectsEnvelope(envelope)) {
