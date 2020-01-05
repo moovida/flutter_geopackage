@@ -4,6 +4,8 @@ part of flutter_geopackage;
 ///
 /// @author Andrea Antonello (www.hydrologis.com)
 class GeopackageDb {
+  static final String HM_STYLES_TABLE = "hm_styles";
+
   static final String GEOPACKAGE_CONTENTS = "gpkg_contents";
 
   static final String GEOMETRY_COLUMNS = "gpkg_geometry_columns";
@@ -981,6 +983,41 @@ class GeopackageDb {
     String sql = "INSERT INTO $GEOMETRY_COLUMNS VALUES (?, ?, ?, ?, ?, ?);";
 
     _sqliteDb.insert(sql, [tableName, geometryName, geometryType, srid, hasZ ? 1 : 0, hasM ? 1 : 0]);
+  }
+
+  Future<BasicStyle> getBasicStyle(String tableName) async {
+    await checkStyleTable();
+    String sql = "select simplified from " + HM_STYLES_TABLE + " where lower(tablename)='" + tableName.toLowerCase() + "'";
+    var res = await _sqliteDb.query(sql);
+    BasicStyle style = BasicStyle();
+    if (res.length == 1) {
+      Map<String, dynamic> map = res[0];
+      String jsonStyle = map['simplified'];
+      style.setFromJson(jsonStyle);
+    }
+    return style;
+  }
+
+  Future<void> checkStyleTable() async {
+    if (!await _sqliteDb.hasTable(HM_STYLES_TABLE)) {
+      var createTablesQuery = '''
+      CREATE TABLE $HM_STYLES_TABLE (  
+        tablename TEXT NOT NULL,
+        sld TEXT,
+        simplified TEXT
+      );
+      CREATE INDEX ${HM_STYLES_TABLE}_tablename_idx ON $HM_STYLES_TABLE (tablename);
+    ''';
+      await _sqliteDb.transaction((tx) async {
+        var split = createTablesQuery.replaceAll("\n", "").trim().split(";");
+        for (int i = 0; i < split.length; i++) {
+          var sql = split[i].trim();
+          if (sql.length > 0 && !sql.startsWith("--")) {
+            await tx.execute(sql);
+          }
+        }
+      });
+    }
   }
 
 //
