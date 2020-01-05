@@ -789,11 +789,18 @@ class GeopackageDb {
     }
     List<Map<String, dynamic>> result = await _sqliteDb.query(sql);
     result.forEach((map) {
-      var geomBytes = map.remove(queryResult.geomName);
-      Geometry geom = GeoPkgGeomReader(geomBytes).get();
-      queryResult.geoms.add(geom);
+      Map<String, dynamic> newMap = {};
+      map.forEach((k, v) {
+        if (k == queryResult.geomName) {
+          var geomBytes = map[queryResult.geomName];
+          Geometry geom = GeoPkgGeomReader(geomBytes).get();
+          queryResult.geoms.add(geom);
+        } else {
+          newMap[k] = v;
+        }
+      });
+      queryResult.data.add(newMap);
     });
-    queryResult.data = result;
 
     return queryResult;
   }
