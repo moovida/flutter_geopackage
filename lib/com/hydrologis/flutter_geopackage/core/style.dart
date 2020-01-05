@@ -279,14 +279,14 @@ class BasicStyle {
     Map<String, dynamic> map = JSON.jsonDecode(json);
     id = map[ID];
     if (map.containsKey(NAME)) name = map[NAME];
-    if (map.containsKey(SIZE)) size = map[SIZE];
+    if (map.containsKey(SIZE)) size = double.parse(map[SIZE].toString());
     if (map.containsKey(FILLCOLOR)) fillcolor = map[FILLCOLOR];
     if (map.containsKey(STROKECOLOR)) strokecolor = map[STROKECOLOR];
-    if (map.containsKey(FILLALPHA)) fillalpha = map[FILLALPHA];
-    if (map.containsKey(STROKEALPHA)) strokealpha = map[STROKEALPHA];
+    if (map.containsKey(FILLALPHA)) fillalpha = double.parse(map[FILLALPHA].toString());
+    if (map.containsKey(STROKEALPHA)) strokealpha = double.parse(map[STROKEALPHA].toString());
     if (map.containsKey(SHAPE)) shape = map[SHAPE];
-    if (map.containsKey(WIDTH)) width = map[WIDTH];
-    if (map.containsKey(LABELSIZE)) labelsize = map[LABELSIZE];
+    if (map.containsKey(WIDTH)) width = double.parse(map[WIDTH].toString());
+    if (map.containsKey(LABELSIZE)) labelsize = double.parse(map[LABELSIZE].toString());
     if (map.containsKey(LABELFIELD)) labelfield = map[LABELFIELD];
     if (map.containsKey(LABELVISIBLE)) labelvisible = map[LABELVISIBLE];
     if (map.containsKey(ENABLED)) enabled = map[ENABLED];
@@ -294,7 +294,7 @@ class BasicStyle {
     if (map.containsKey(DASH)) dashPattern = map[DASH];
     if (map.containsKey(MINZOOM)) minZoom = map[MINZOOM];
     if (map.containsKey(MAXZOOM)) maxZoom = map[MAXZOOM];
-    if (map.containsKey(DECIMATION)) decimationFactor = map[DECIMATION];
+    if (map.containsKey(DECIMATION)) decimationFactor = double.parse(map[DECIMATION].toString());
   }
 
   String toString() {
