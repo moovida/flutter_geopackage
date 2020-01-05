@@ -33,6 +33,9 @@ class GeopackageDb {
   /// An ISO8601 date formatter (yyyy-MM-dd HH:mm:ss).
   static final DateFormat ISO8601_TS_FORMATTER = DateFormat(DATE_FORMAT_STRING);
 
+  static final int MERCATOR_SRID = 3857;
+  static final int WGS84LL_SRID = 4326;
+
   // static final Pattern PROPERTY_PATTERN = Pattern.compile("\\$\\{(.+?)\\}");
 
   String _dbPath;
@@ -144,7 +147,7 @@ class GeopackageDb {
   Future<List<FeatureEntry>> features() async {
     String sql = "SELECT a.*, b.column_name, b.geometry_type_name, b.z, b.m, c.organization_coordsys_id, c.definition" +
         " FROM $GEOPACKAGE_CONTENTS a, $GEOMETRY_COLUMNS b, $SPATIAL_REF_SYS c WHERE a.table_name = b.table_name" +
-        " AND a.srs_id = c.srs_id AND a.data_type = ?";
+        " AND a.srs_id = c.srs_id AND a.data_type = ? and c.srs_id = $WGS84LL_SRID";
     var res = await _sqliteDb.query(sql, [DataType.Feature.value]);
 
     List<FeatureEntry> contents = [];
@@ -166,7 +169,7 @@ class GeopackageDb {
 
     String sql = "SELECT a.*, b.column_name, b.geometry_type_name, b.m, b.z, c.organization_coordsys_id, c.definition" +
         " FROM $GEOPACKAGE_CONTENTS a, $GEOMETRY_COLUMNS b, $SPATIAL_REF_SYS c WHERE a.table_name = b.table_name " +
-        " AND a.srs_id = c.srs_id AND lower(a.table_name) = lower(?)" +
+        " AND a.srs_id = c.srs_id AND c.srs_id = $WGS84LL_SRID AND lower(a.table_name) = lower(?)" +
         " AND a.data_type = ?";
 
     var res = await _sqliteDb.query(sql, [name, DataType.Feature.value]);
