@@ -1093,7 +1093,22 @@ class GeopackageDb {
     return null;
   }
 
+  /// Get the list of zoomlevels that contain data.
+  ///
+  /// @param tableName the name of the table.
+  /// @return the list of zoom levels.
+  /// @throws Exception
+  Future<List<int>> getTileZoomLevelsWithData(String tableName) async {
+    String sql = "select distinct " + COL_TILES_ZOOM_LEVEL + " from " + DbsUtilities.fixTableName(tableName) + " order by " + COL_TILES_ZOOM_LEVEL;
 
+    List<int> list = [];
+    var res = await _sqliteDb.query(sql);
+    res.forEach((map) {
+      var zoomLevel = (map[COL_TILES_ZOOM_LEVEL] as num).toInt();
+      list.add(zoomLevel);
+    });
+    return list;
+  }
 
 //
 //    void deleteGeometryColumnsEntry( FeatureEntry e ) throws IOException {
