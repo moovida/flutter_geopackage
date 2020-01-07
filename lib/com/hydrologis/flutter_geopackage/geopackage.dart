@@ -44,6 +44,7 @@ class GeopackageDb {
   bool _supportsRtree = false;
   bool _isGpgkInitialized = false;
   String _gpkgVersion;
+  bool doRtreeTestCheck = true;
 
   GeopackageDb(this._dbPath) {
     _sqliteDb = new SqliteDb(_dbPath);
@@ -66,15 +67,17 @@ class GeopackageDb {
 
     _isGpgkInitialized = _gpkgVersion != null;
 
-    try {
-      String checkTable = "rtree_test_check";
-      String checkRtree = "CREATE VIRTUAL TABLE " + checkTable + " USING rtree(id, minx, maxx, miny, maxy)";
-      await _sqliteDb.execute(checkRtree);
-      String drop = "DROP TABLE " + checkTable;
-      await _sqliteDb.execute(drop);
-      _supportsRtree = true;
-    } catch (e) {
-      _supportsRtree = false;
+    if(doRtreeTestCheck) {
+      try {
+        String checkTable = "rtree_test_check";
+        String checkRtree = "CREATE VIRTUAL TABLE " + checkTable + " USING rtree(id, minx, maxx, miny, maxy)";
+        await _sqliteDb.execute(checkRtree);
+        String drop = "DROP TABLE " + checkTable;
+        await _sqliteDb.execute(drop);
+        _supportsRtree = true;
+      } catch (e) {
+        _supportsRtree = false;
+      }
     }
 
     if (!_isGpgkInitialized) {
