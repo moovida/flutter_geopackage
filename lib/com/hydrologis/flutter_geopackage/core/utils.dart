@@ -205,11 +205,142 @@ class FeatureEntry extends Entry {
   }
 }
 
+/// Tiles Entry inside a GeoPackage.
+///
+/// @author Justin Deoliveira
+/// @author Niels Charlier
+/// @author Andrea Antonello (www.hydrologis.com)
+class TileEntry extends Entry {
+  List<TileMatrix> tileMatricies = [];
+
+  Envelope tileMatrixSetBounds;
+
+  TileEntry() {
+    setDataType(DataType.Tile);
+  }
+
+  List<TileMatrix> getTileMatricies() {
+    return tileMatricies;
+  }
+
+  void setTileMatricies(List<TileMatrix> tileMatricies) {
+    this.tileMatricies = tileMatricies;
+  }
+
+  void init(Entry e) {
+    super.init(e);
+    TileEntry te = e as TileEntry;
+    setTileMatricies(te.getTileMatricies());
+    this.tileMatrixSetBounds = te.tileMatrixSetBounds == null ? null : new Envelope.fromEnvelope(te.tileMatrixSetBounds);
+  }
+
+  /**
+   * Returns the tile matrix set bounds. The bounds are expressed in the same CRS as the entry,
+   * but they might differ in extent (if null, then the tile matrix bounds are supposed to be the
+   * same as the entry)
+   *
+   * @return
+   */
+  Envelope getTileMatrixSetBounds() {
+    tileMatrixSetBounds != null ? tileMatrixSetBounds : bounds;
+  }
+
+  void setTileMatrixSetBounds(Envelope tileMatrixSetBounds) {
+    this.tileMatrixSetBounds = tileMatrixSetBounds;
+  }
+}
+
 /**
- * Geometry types used by the utility.
+ * A TileMatrix inside a Geopackage. Corresponds to the gpkg_tile_matrix table.
  *
- * @author Andrea Antonello (www.hydrologis.com)
+ * @author Justin Deoliveira
+ * @author Niels Charlier
  */
+class TileMatrix {
+  int zoomLevel;
+  int matrixWidth, matrixHeight;
+  int tileWidth, tileHeight;
+  double xPixelSize;
+  double yPixelSize;
+  bool tiles;
+
+  TileMatrix(this.zoomLevel, this.matrixWidth, this.matrixHeight, this.tileWidth, this.tileHeight, this.xPixelSize, this.yPixelSize);
+
+  int getZoomLevel() {
+    return zoomLevel;
+  }
+
+  void setZoomLevel(int zoomLevel) {
+    this.zoomLevel = zoomLevel;
+  }
+
+  int getMatrixWidth() {
+    return matrixWidth;
+  }
+
+  void setMatrixWidth(int matrixWidth) {
+    this.matrixWidth = matrixWidth;
+  }
+
+  int getMatrixHeight() {
+    return matrixHeight;
+  }
+
+  void setMatrixHeight(int matrixHeight) {
+    this.matrixHeight = matrixHeight;
+  }
+
+  int getTileWidth() {
+    return tileWidth;
+  }
+
+  void setTileWidth(int tileWidth) {
+    this.tileWidth = tileWidth;
+  }
+
+  int getTileHeight() {
+    return tileHeight;
+  }
+
+  void setTileHeight(int tileHeight) {
+    this.tileHeight = tileHeight;
+  }
+
+  double getXPixelSize() {
+    return xPixelSize;
+  }
+
+  void setXPixelSize(double xPixelSize) {
+    this.xPixelSize = xPixelSize;
+  }
+
+  double getYPixelSize() {
+    return yPixelSize;
+  }
+
+  void setYPixelSize(double yPixelSize) {
+    this.yPixelSize = yPixelSize;
+  }
+
+  bool hasTiles() {
+    return tiles;
+  }
+
+  void setTiles(bool tiles) {
+    this.tiles = tiles;
+  }
+
+  String toString() {
+    return "TileMatrix [zoomLevel=$zoomLevel, matrixWidth=" +
+        "$matrixWidth , matrixHeight=$matrixHeight, tileWidth=" +
+        "$tileWidth , tileHeight=$tileHeight, xPixelSize=" +
+        "$xPixelSize, yPixelSize=$yPixelSize, tiles=$tiles]";
+  }
+}
+
+/// Geometry types used by the utility.
+///
+/// @author Andrea Antonello (www.hydrologis.com)
 class EGeometryType {
 //  static const NONE = const EGeometryType._(0, 0);
   static const POINT = const EGeometryType._(Point, MultiPoint, "Point");

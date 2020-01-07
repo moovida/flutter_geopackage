@@ -30,6 +30,12 @@ class GeopackageDb {
 
   static final String DATE_FORMAT_STRING = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
 
+  static final String COL_TILES_ZOOM_LEVEL = "zoom_level";
+  static final String COL_TILES_TILE_COLUMN = "tile_column";
+  static final String COL_TILES_TILE_ROW = "tile_row";
+  static final String COL_TILES_TILE_DATA = "tile_data";
+  static final String SELECTQUERY = "SELECT $COL_TILES_TILE_DATA from ? where $COL_TILES_ZOOM_LEVEL=? AND $COL_TILES_TILE_COLUMN=? AND $COL_TILES_TILE_ROW=?";
+
   /// An ISO8601 date formatter (yyyy-MM-dd HH:mm:ss).
   static final DateFormat ISO8601_TS_FORMATTER = DateFormat(DATE_FORMAT_STRING);
 
@@ -67,7 +73,7 @@ class GeopackageDb {
 
     _isGpgkInitialized = _gpkgVersion != null;
 
-    if(doRtreeTestCheck) {
+    if (doRtreeTestCheck) {
       try {
         String checkTable = "rtree_test_check";
         String checkRtree = "CREATE VIRTUAL TABLE " + checkTable + " USING rtree(id, minx, maxx, miny, maxy)";
@@ -113,39 +119,6 @@ class GeopackageDb {
 
   String get version => _gpkgVersion;
 
-  /// Returns list of contents of the geopackage.
-  Future<List<Entry>> contents() async {
-    String sql = "SELECT c.*, g.column_name, g.geometry_type_name, g.z , g.m FROM " +
-        GEOPACKAGE_CONTENTS +
-        " c, " +
-        GEOMETRY_COLUMNS +
-        " g where c.table_name=g.table_name";
-
-    List<Map<String, dynamic>> res = await _sqliteDb.query(sql);
-
-    List<Entry> contents = [];
-    res.forEach((map) {
-      String dt = map["data_type"];
-      DataType type = DataType.of(dt);
-      Entry e = null;
-      switch (type) {
-        case DataType.Feature:
-          e = createFeatureEntry(map);
-          break;
-        case DataType.Tile:
-//                        e = createTileEntry(rs, cx);
-          break;
-        default:
-          throw new StateError("unexpected type in GeoPackage");
-      }
-      if (e != null) {
-        contents.add(e);
-      }
-    });
-
-    return contents;
-  }
-
   /// Lists all the feature entries in the geopackage. */
   Future<List<FeatureEntry>> features() async {
     String sql = "SELECT a.*, b.column_name, b.geometry_type_name, b.z, b.m, c.organization_coordsys_id, c.definition" +
@@ -182,13 +155,104 @@ class GeopackageDb {
     return null;
   }
 
-  /**
-   * Verifies if a spatial index is present
-   *
-   * @param entry The feature entry.
-   * @return whether this feature entry has a spatial index available.
-   * @throws IOException
-   */
+  /// Lists all the tile entries in the geopackage. */
+  Future<List<TileEntry>> tiles() async {
+    String sql = "SELECT a.*, c.organization_coordsys_id, c.definition" +
+        " FROM $GEOPACKAGE_CONTENTS a, $SPATIAL_REF_SYS c" +
+        " WHERE a.srs_id = c.srs_id AND c.srs_id=$MERCATOR_SRID" +
+        " AND a.data_type = ?";
+
+    var res = await _sqliteDb.query(sql, [DataType.Tile.value]);
+    List<TileEntry> contents = [];
+    for (int i = 0; i < res.length; i++) {
+      var map = res[i];
+      var tileEntry = await createTileEntry(map);
+      contents.add(tileEntry);
+    }
+  }
+
+  Future<TileEntry> createTileEntry(Map<String, dynamic> map) async {
+    TileEntry e = new TileEntry();
+    e.setIdentifier(map["identifier"]);
+    e.setDescription(map["description"]);
+    e.setTableName(map["table_name"]);
+    int srid = (map["srs_id"] as num).toInt();
+    e.setSrid(srid);
+    e.setBounds(new Envelope(
+      (map["min_x"] as num).toDouble(),
+      (map["max_x"] as num).toDouble(),
+      (map["min_y"] as num).toDouble(),
+      (map["max_y"] as num).toDouble(),
+    ));
+
+    String sql =
+        "SELECT *, exists(SELECT 1 FROM ${DbsUtilities.fixTableName(e.getTableName())} data where data.zoom_level = tileMatrix.zoom_level) as has_tiles" +
+            " FROM $TILE_MATRIX_METADATA as tileMatrix WHERE table_name = ? ORDER BY zoom_level ASC";
+    // load all the tile matrix entries (and join with the data table to see if a certain level
+    // has tiles available, given the indexes in the data table, it should be real quick)
+    var res = await _sqliteDb.query(sql, [e.getTableName()]);
+    for (int i = 0; i < res.length; i++) {
+      var zl = (map["zoom_level"] as num).toInt();
+      var mw = (map["matrix_width"] as num).toInt();
+      var mh = (map["matrix_height"] as num).toInt();
+      var tw = (map["tile_width"] as num).toInt();
+      var th = (map["tile_height"] as num).toInt();
+      var pxs = (map["pixel_x_size"] as num).toDouble();
+      var pys = (map["pixel_y_size"] as num).toDouble();
+      var has = map["has_tiles"];
+
+      TileMatrix m = TileMatrix(zl, mw, mh, tw, th, pxs, pys)..setTiles(has);
+
+      e.getTileMatricies().add(m);
+    }
+
+    // use the tile matrix set bounds rather that gpkg_contents bounds
+    // per spec, the tile matrix set bounds should be exact and used to calculate tile
+    // coordinates and in contrast the gpkg_contents is "informational" only
+    sql = "SELECT * FROM $TILE_MATRIX_SET a, $SPATIAL_REF_SYS b WHERE lower(a.table_name) = lower(?) AND a.srs_id = b.srs_id LIMIT 1";
+    res = await _sqliteDb.query(sql, [e.getTableName()]);
+    if (res.isNotEmpty) {
+      var map = res.first;
+      var srid = (map["organization_coordsys_id"] as num).toInt();
+      e.setSrid(srid);
+      e.setTileMatrixSetBounds(Envelope(
+        (map["min_x"] as num).toDouble(),
+        (map["max_x"] as num).toDouble(),
+        (map["min_y"] as num).toDouble(),
+        (map["max_y"] as num).toDouble(),
+      ));
+    }
+    return e;
+  }
+
+  /// Looks up a tile entry by name.
+  ///
+  /// @param name THe name of the tile entry.
+  /// @return The entry, or <code>null</code> if no such entry exists.
+  Future<TileEntry> tile(String name) async {
+    if (!await _sqliteDb.hasTable(GEOMETRY_COLUMNS)) {
+      return null;
+    }
+
+    String sql = "SELECT a.*, c.organization_coordsys_id, c.definition" +
+        " FROM $GEOPACKAGE_CONTENTS a, $SPATIAL_REF_SYS c" +
+        " WHERE a.srs_id = c.srs_id AND c.srs_id=$MERCATOR_SRID" +
+        " AND Lower(a.table_name) = Lower(?)" +
+        " AND a.data_type = ?";
+
+    var res = await _sqliteDb.query(sql, [name, DataType.Tile.value]);
+    if (res.isNotEmpty) {
+      return createTileEntry(res.first);
+    }
+
+    return null;
+  }
+
+  /// Verifies if a spatial index is present
+  ///
+  /// @param entry The feature entry.
+  /// @return whether this feature entry has a spatial index available.
+  /// @throws IOException
   Future<bool> hasSpatialIndex(String table) async {
     FeatureEntry featureEntry = await feature(table);
 
@@ -1009,6 +1073,27 @@ class GeopackageDb {
       });
     }
   }
+
+  /// Get a Tile's image bytes from the database for a given table.
+  ///
+  /// @param tableName the table name to get the image from.
+  /// @param tx the x tile index.
+  /// @param ty the y tile index, the osm way.
+  /// @param zoom the zoom level.
+  /// @return the tile image bytes.
+  Future<List<int>> getTile(String tableName, int tx, int ty, int zoom) async {
+    // if (tileRowType.equals("tms")) { // if it is not OSM way
+    // int[] tmsTileXY = MercatorUtils.osmTile2TmsTile(tx, ty, zoom);
+    // ty = tmsTileXY[1];
+    // }
+    var res = await _sqliteDb.query(SELECTQUERY, [DbsUtilities.fixTableName(tableName), zoom, tx, ty]);
+    if (res.isNotEmpty) {
+      return res.first[COL_TILES_TILE_DATA];
+    }
+    return null;
+  }
+
+
 
 //
 //    void deleteGeometryColumnsEntry( FeatureEntry e ) throws IOException {
