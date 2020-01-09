@@ -1096,16 +1096,26 @@ class GeopackageDb {
   /// @param zoom the zoom level.
   /// @return the tile image bytes.
   Future<List<int>> getTile(String tableName, int tx, int ty, int zoom) async {
-    // if (tileRowType.equals("tms")) { // if it is not OSM way
-    // int[] tmsTileXY = MercatorUtils.osmTile2TmsTile(tx, ty, zoom);
-    // ty = tmsTileXY[1];
-    // }
+//     if (tileRowType.equals("tms")) { // if it is not OSM way
+    var tmsTileXY = osmTile2TmsTile(tx, ty, zoom);
+    ty = tmsTileXY[1];
+//     }
     String sql = SELECTQUERY_PRE + DbsUtilities.fixTableName(tableName) + SELECTQUERY_POST;
     var res = await _sqliteDb.query(sql, [zoom, tx, ty]);
     if (res.isNotEmpty) {
       return res.first[COL_TILES_TILE_DATA];
     }
     return null;
+  }
+
+  /// Converts Osm slippy map tile coordinates to TMS Tile coordinates.
+  ///
+  /// @param tx   the x tile number.
+  /// @param ty   the y tile number.
+  /// @param zoom the current zoom level.
+  /// @return the converted values.
+  static List<int> osmTile2TmsTile(int tx, int ty, int zoom) {
+    return [tx, (math.pow(2, zoom) - 1).round() - ty];
   }
 
   /// Get the list of zoomlevels that contain data.
