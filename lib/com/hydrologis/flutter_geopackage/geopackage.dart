@@ -4,43 +4,55 @@ part of flutter_geopackage;
 ///
 /// @author Andrea Antonello (www.hydrologis.com)
 class GeopackageDb {
-  static final String HM_STYLES_TABLE = "hm_styles";
+  static const String HM_STYLES_TABLE = "hm_styles";
 
-  static final String GEOPACKAGE_CONTENTS = "gpkg_contents";
+  static const String GEOPACKAGE_CONTENTS = "gpkg_contents";
 
-  static final String GEOMETRY_COLUMNS = "gpkg_geometry_columns";
+  static const String GEOMETRY_COLUMNS = "gpkg_geometry_columns";
 
-  static final String SPATIAL_REF_SYS = "gpkg_spatial_ref_sys";
+  static const String SPATIAL_REF_SYS = "gpkg_spatial_ref_sys";
 
-  static final String RASTER_COLUMNS = "gpkg_data_columns";
+  static const String RASTER_COLUMNS = "gpkg_data_columns";
 
-  static final String TILE_MATRIX_METADATA = "gpkg_tile_matrix";
+  static const String TILE_MATRIX_METADATA = "gpkg_tile_matrix";
 
-  static final String METADATA = "gpkg_metadata";
+  static const String METADATA = "gpkg_metadata";
 
-  static final String METADATA_REFERENCE = "gpkg_metadata_reference";
+  static const String METADATA_REFERENCE = "gpkg_metadata_reference";
 
-  static final String TILE_MATRIX_SET = "gpkg_tile_matrix_set";
+  static const String TILE_MATRIX_SET = "gpkg_tile_matrix_set";
 
-  static final String DATA_COLUMN_CONSTRAINTS = "gpkg_data_column_constraints";
+  static const String DATA_COLUMN_CONSTRAINTS = "gpkg_data_column_constraints";
 
-  static final String EXTENSIONS = "gpkg_extensions";
+  static const String EXTENSIONS = "gpkg_extensions";
 
-  static final String SPATIAL_INDEX = "gpkg_spatial_index";
+  static const String SPATIAL_INDEX = "gpkg_spatial_index";
 
-  static final String DATE_FORMAT_STRING = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
+  static const String DATE_FORMAT_STRING = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
 
-  static final String COL_TILES_ZOOM_LEVEL = "zoom_level";
-  static final String COL_TILES_TILE_COLUMN = "tile_column";
-  static final String COL_TILES_TILE_ROW = "tile_row";
-  static final String COL_TILES_TILE_DATA = "tile_data";
-  static final String SELECTQUERY = "SELECT $COL_TILES_TILE_DATA from ? where $COL_TILES_ZOOM_LEVEL=? AND $COL_TILES_TILE_COLUMN=? AND $COL_TILES_TILE_ROW=?";
+  static const String COL_TILES_ZOOM_LEVEL = "zoom_level";
+  static const String COL_TILES_TILE_COLUMN = "tile_column";
+  static const String COL_TILES_TILE_ROW = "tile_row";
+  static const String COL_TILES_TILE_DATA = "tile_data";
+  static const String SELECTQUERY_PRE = "SELECT $COL_TILES_TILE_DATA from ";
+  static const String SELECTQUERY_POST = " where $COL_TILES_ZOOM_LEVEL=? AND $COL_TILES_TILE_COLUMN=? AND $COL_TILES_TILE_ROW=?";
 
   /// An ISO8601 date formatter (yyyy-MM-dd HH:mm:ss).
   static final DateFormat ISO8601_TS_FORMATTER = DateFormat(DATE_FORMAT_STRING);
 
-  static final int MERCATOR_SRID = 3857;
-  static final int WGS84LL_SRID = 4326;
+  static const int MERCATOR_SRID = 3857;
+  static const int WGS84LL_SRID = 4326;
+
+  /// If true, this forces mobile compatibility, which means that:
+  ///
+  ///  <ul>
+  ///      <li>tiles: accept only srid 3857</li>
+  ///      <li>vectors: accept only srid 4326</li>
+  ///  </ul>
+  ///
+  /// Default on flutter is true. If you have a system that allows more
+  /// than this, drop me an email :-)
+  bool forceMobileCompatibility = true;
 
   // static final Pattern PROPERTY_PATTERN = Pattern.compile("\\$\\{(.+?)\\}");
 
@@ -121,9 +133,10 @@ class GeopackageDb {
 
   /// Lists all the feature entries in the geopackage. */
   Future<List<FeatureEntry>> features() async {
+    String compat = forceMobileCompatibility ? "and c.srs_id = $WGS84LL_SRID" : "";
     String sql = "SELECT a.*, b.column_name, b.geometry_type_name, b.z, b.m, c.organization_coordsys_id, c.definition" +
         " FROM $GEOPACKAGE_CONTENTS a, $GEOMETRY_COLUMNS b, $SPATIAL_REF_SYS c WHERE a.table_name = b.table_name" +
-        " AND a.srs_id = c.srs_id AND a.data_type = ? and c.srs_id = $WGS84LL_SRID";
+        " AND a.srs_id = c.srs_id AND a.data_type = ? $compat";
     var res = await _sqliteDb.query(sql, [DataType.Feature.value]);
 
     List<FeatureEntry> contents = [];
@@ -142,10 +155,10 @@ class GeopackageDb {
     if (!await _sqliteDb.hasTable(GEOMETRY_COLUMNS)) {
       return null;
     }
-
+    String compat = forceMobileCompatibility ? "and c.srs_id = $WGS84LL_SRID" : "";
     String sql = "SELECT a.*, b.column_name, b.geometry_type_name, b.m, b.z, c.organization_coordsys_id, c.definition" +
         " FROM $GEOPACKAGE_CONTENTS a, $GEOMETRY_COLUMNS b, $SPATIAL_REF_SYS c WHERE a.table_name = b.table_name " +
-        " AND a.srs_id = c.srs_id AND c.srs_id = $WGS84LL_SRID AND lower(a.table_name) = lower(?)" +
+        " AND a.srs_id = c.srs_id $compat AND lower(a.table_name) = lower(?)" +
         " AND a.data_type = ?";
 
     var res = await _sqliteDb.query(sql, [name, DataType.Feature.value]);
@@ -157,10 +170,10 @@ class GeopackageDb {
 
   /// Lists all the tile entries in the geopackage. */
   Future<List<TileEntry>> tiles() async {
+    String compat = forceMobileCompatibility ? "and c.srs_id = $MERCATOR_SRID" : "";
     String sql = "SELECT a.*, c.organization_coordsys_id, c.definition" +
         " FROM $GEOPACKAGE_CONTENTS a, $SPATIAL_REF_SYS c" +
-        " WHERE a.srs_id = c.srs_id AND c.srs_id=$MERCATOR_SRID" +
-        " AND a.data_type = ?";
+        " WHERE a.srs_id = c.srs_id $compat AND a.data_type = ?";
 
     var res = await _sqliteDb.query(sql, [DataType.Tile.value]);
     List<TileEntry> contents = [];
@@ -169,6 +182,7 @@ class GeopackageDb {
       var tileEntry = await createTileEntry(map);
       contents.add(tileEntry);
     }
+    return contents;
   }
 
   Future<TileEntry> createTileEntry(Map<String, dynamic> map) async {
@@ -192,16 +206,17 @@ class GeopackageDb {
     // has tiles available, given the indexes in the data table, it should be real quick)
     var res = await _sqliteDb.query(sql, [e.getTableName()]);
     for (int i = 0; i < res.length; i++) {
-      var zl = (map["zoom_level"] as num).toInt();
-      var mw = (map["matrix_width"] as num).toInt();
-      var mh = (map["matrix_height"] as num).toInt();
-      var tw = (map["tile_width"] as num).toInt();
-      var th = (map["tile_height"] as num).toInt();
-      var pxs = (map["pixel_x_size"] as num).toDouble();
-      var pys = (map["pixel_y_size"] as num).toDouble();
-      var has = map["has_tiles"];
+      var resMap = res[i];
+      var zl = (resMap["zoom_level"] as num).toInt();
+      var mw = (resMap["matrix_width"] as num).toInt();
+      var mh = (resMap["matrix_height"] as num).toInt();
+      var tw = (resMap["tile_width"] as num).toInt();
+      var th = (resMap["tile_height"] as num).toInt();
+      var pxs = (resMap["pixel_x_size"] as num).toDouble();
+      var pys = (resMap["pixel_y_size"] as num).toDouble();
+      var has = resMap["has_tiles"];
 
-      TileMatrix m = TileMatrix(zl, mw, mh, tw, th, pxs, pys)..setTiles(has);
+      TileMatrix m = TileMatrix(zl, mw, mh, tw, th, pxs, pys)..setTiles(has == 1 ? true : false);
 
       e.getTileMatricies().add(m);
     }
@@ -233,11 +248,10 @@ class GeopackageDb {
     if (!await _sqliteDb.hasTable(GEOMETRY_COLUMNS)) {
       return null;
     }
-
+    String compat = forceMobileCompatibility ? "and c.srs_id=$MERCATOR_SRID" : "";
     String sql = "SELECT a.*, c.organization_coordsys_id, c.definition" +
         " FROM $GEOPACKAGE_CONTENTS a, $SPATIAL_REF_SYS c" +
-        " WHERE a.srs_id = c.srs_id AND c.srs_id=$MERCATOR_SRID" +
-        " AND Lower(a.table_name) = Lower(?)" +
+        " WHERE a.srs_id = c.srs_id $compat AND Lower(a.table_name) = Lower(?)" +
         " AND a.data_type = ?";
 
     var res = await _sqliteDb.query(sql, [name, DataType.Tile.value]);
@@ -363,7 +377,7 @@ class GeopackageDb {
   }
 
   void close() {
-    _sqliteDb.close();
+    _sqliteDb?.close();
   }
 
   Future<Map<String, List<String>>> getTablesMap(bool doOrder) async {
@@ -1086,7 +1100,8 @@ class GeopackageDb {
     // int[] tmsTileXY = MercatorUtils.osmTile2TmsTile(tx, ty, zoom);
     // ty = tmsTileXY[1];
     // }
-    var res = await _sqliteDb.query(SELECTQUERY, [DbsUtilities.fixTableName(tableName), zoom, tx, ty]);
+    String sql = SELECTQUERY_PRE + DbsUtilities.fixTableName(tableName) + SELECTQUERY_POST;
+    var res = await _sqliteDb.query(sql, [zoom, tx, ty]);
     if (res.isNotEmpty) {
       return res.first[COL_TILES_TILE_DATA];
     }
