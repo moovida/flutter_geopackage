@@ -135,6 +135,10 @@ class GeopackageDb {
     }
   }
 
+  bool isOpen() {
+    return _sqliteDb != null && _sqliteDb.isOpen();
+  }
+
   bool get supportsSpatialIndex => _supportsRtree;
 
   String get version => _gpkgVersion;
@@ -224,15 +228,7 @@ class GeopackageDb {
       var pys = (resMap["pixel_y_size"] as num).toDouble();
       var has = resMap["has_tiles"];
 
-      TileMatrix m = TileMatrix(
-          zl,
-          mw,
-          mh,
-          tw,
-          th,
-          pxs,
-          pys)
-        ..setTiles(has == 1 ? true : false);
+      TileMatrix m = TileMatrix(zl, mw, mh, tw, th, pxs, pys)..setTiles(has == 1 ? true : false);
 
       e.getTileMatricies().add(m);
     }
