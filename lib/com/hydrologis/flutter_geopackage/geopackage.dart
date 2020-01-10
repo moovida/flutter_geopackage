@@ -68,6 +68,14 @@ class GeopackageDb {
     _sqliteDb = new SqliteDb(_dbPath);
   }
 
+  @override
+  bool operator ==(other) {
+    return other is GeopackageDb && _dbPath == other._dbPath;
+  }
+
+  @override
+  int get hashCode => _dbPath.hashCode;
+
   openOrCreate({Function dbCreateFunction}) async {
     await _sqliteDb.openOrCreate();
 
@@ -216,7 +224,15 @@ class GeopackageDb {
       var pys = (resMap["pixel_y_size"] as num).toDouble();
       var has = resMap["has_tiles"];
 
-      TileMatrix m = TileMatrix(zl, mw, mh, tw, th, pxs, pys)..setTiles(has == 1 ? true : false);
+      TileMatrix m = TileMatrix(
+          zl,
+          mw,
+          mh,
+          tw,
+          th,
+          pxs,
+          pys)
+        ..setTiles(has == 1 ? true : false);
 
       e.getTileMatricies().add(m);
     }
@@ -376,8 +392,8 @@ class GeopackageDb {
     return res.length > 0;
   }
 
-  void close() {
-    _sqliteDb?.close();
+  Future<void> close() async {
+    await _sqliteDb?.close();
   }
 
   Future<Map<String, List<String>>> getTablesMap(bool doOrder) async {
@@ -1332,4 +1348,87 @@ class GeopackageDb {
 //
 //  );
 //}
+}
+
+class ConnectionsHandler {
+  bool DO_RTREE_CHECK = false;
+  bool FORCE_MOBILE_COMPATIBILITY = true;
+
+  static final ConnectionsHandler _singleton = ConnectionsHandler._internal();
+
+  factory ConnectionsHandler() {
+    return _singleton;
+  }
+
+  ConnectionsHandler._internal();
+
+  /// Map containing a mapping of db paths and db connections.
+  Map<String, GeopackageDb> _connectionsMap = {};
+
+  /// Map containing a mapping of db paths opened tables.
+  ///
+  /// The db can be closed only when all tables have been removed.
+  Map<String, List<String>> _tableNamesMap = {};
+
+  /// Open a new db or retrieve it from the cache.
+  ///
+  /// The [tableName] can be added to keep track of the tables that
+  /// still need an open connection boudn to a given [path].
+  Future<GeopackageDb> open(String path, {String tableName}) async {
+    GeopackageDb db = _connectionsMap[path];
+    if (db == null) {
+      db = GeopackageDb(path);
+      db.doRtreeTestCheck = DO_RTREE_CHECK;
+      db.forceMobileCompatibility = FORCE_MOBILE_COMPATIBILITY;
+      await db.openOrCreate();
+
+      _connectionsMap[path] = db;
+    }
+    var namesList = _tableNamesMap[path];
+    if (namesList == null) {
+      namesList = List<String>();
+      _tableNamesMap[path] = namesList;
+    }
+    if (tableName != null && !namesList.contains(tableName)) {
+      namesList.add(tableName);
+    }
+    return db;
+  }
+
+  /// Close an existing db connection, if all tables bound to it were released.
+  Future<void> close(String path, {String tableName}) async {
+    var tableNamesList = _tableNamesMap[path];
+    if (tableName != null && tableNamesList.contains(tableName)) {
+      tableNamesList.remove(tableName);
+    }
+    if (tableNamesList.length == 0) {
+      // ok to close db and remove the connection
+      _tableNamesMap.remove(path);
+      GeopackageDb db = _connectionsMap.remove(path);
+      await db?.close();
+    }
+  }
+
+  Future<void> closeAll() async {
+    _tableNamesMap.clear();
+    Iterable<GeopackageDb> values = _connectionsMap.values;
+    await values.forEach((c) async {
+      await c.close();
+    });
+  }
+
+  List<String> getOpenDbReport() {
+    List<String> msgs = [];
+    if (_tableNamesMap.length > 0) {
+      _tableNamesMap.forEach((p, n) {
+        msgs.add("Database: $p");
+        if (n != null && n.length > 0) {
+          msgs.add("-> with tables: ${n.join("; ")}");
+        }
+      });
+    } else {
+      msgs.add("No database connection.");
+    }
+    return msgs;
+  }
 }

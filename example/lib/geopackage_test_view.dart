@@ -1,7 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:dart_jts/dart_jts.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_geopackage/flutter_geopackage.dart';
-import 'dart:io';
 
 const VECTORPATH = "/storage/emulated/0/gdal_sample.gpkg";
 const TILESPATH = "/storage/emulated/0/tiles_3857.gpkg";
@@ -24,14 +23,42 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
     );
   }
 
+  Widget _addMultiInfoTile(String title, List<String> messages, {color: Colors.white}) {
+    return Container(
+      color: color,
+      child: ListTile(
+        title: Text(title),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: messages.map((str) => Text(str)).toList(),
+        ),
+      ),
+    );
+  }
+
   Future<List<Widget>> getWidgets() async {
-    List<Widget> widgets= [];
+    List<Widget> widgets = [];
+
+    var ch = ConnectionsHandler();
+    var reports = ch.getOpenDbReport();
+
+    var widget = _addMultiInfoTile("Db Handler Report", reports, color: Colors.orange);
+    widgets.add(widget);
 
     List<Widget> vector = await getVectorWidgets();
     widgets.addAll(vector);
 
+    reports = ch.getOpenDbReport();
+    widget = _addMultiInfoTile("Db Handler Report", reports, color: Colors.orange);
+    widgets.add(widget);
+
     List<Widget> tiles = await getTilesWidgets();
     widgets.addAll(tiles);
+
+    reports = ch.getOpenDbReport();
+    widget = _addMultiInfoTile("Db Handler Report", reports, color: Colors.orange);
+    widgets.add(widget);
 
     return widgets;
   }
@@ -62,14 +89,15 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
   Future<List<Widget>> getTilesWidgets() async {
     List<Widget> tiles = [];
 
+    var ch = ConnectionsHandler();
+    ch.DO_RTREE_CHECK = false;
+    ch.FORCE_MOBILE_COMPATIBILITY = false;
+
     GeopackageDb db;
     try {
-      db = GeopackageDb(TILESPATH);
-      db.doRtreeTestCheck = false;
-      db.forceMobileCompatibility = false;
       try {
         tiles.add(_addInfoTile("Open db", "Try opening: " + TILESPATH));
-        await db.openOrCreate();
+        db = await ch.open(TILESPATH);
         tiles.add(_addInfoTile("Open db", "Done"));
       } catch (e) {
         tiles.add(_addInfoTile("Open db", "ERROR: ${e.toString()}", color: Colors.red));
@@ -86,7 +114,7 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
         TileEntry entry = await db.tile('tiles');
         List<TileMatrix> tileMatricies = entry.getTileMatricies();
         tiles.add(_addInfoTile("Tile matrix levels", "level count: ${tileMatricies.length}"));
-        tileMatricies.forEach((tm){
+        tileMatricies.forEach((tm) {
           var zl = tm.zoomLevel;
           var cols = tm.matrixWidth;
           var rows = tm.matrixHeight;
@@ -97,7 +125,6 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
 
           tiles.add(_addInfoTile("Tile level Z=$zl", "cols=$cols; rows=$rows; tw=$tw; th=$th; xres=$xPixelSize; yres=$yPixelSize"));
         });
-
       } catch (e) {
         tiles.add(_addInfoTile("Tile matrix levels", "ERROR: ${e.toString()}", color: Colors.red));
         return tiles;
@@ -110,7 +137,7 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
         return tiles;
       }
     } finally {
-      db?.close();
+      await ch.close(TILESPATH);
     }
 
     return tiles;
@@ -119,11 +146,13 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
   Future<List<Widget>> getVectorWidgets() async {
     List<Widget> tiles = [];
 
+    var ch = ConnectionsHandler();
+    ch.DO_RTREE_CHECK = false;
+    ch.FORCE_MOBILE_COMPATIBILITY = false;
+
     GeopackageDb db;
     try {
-      db = GeopackageDb(VECTORPATH);
-      db.doRtreeTestCheck = false;
-      db.forceMobileCompatibility = false;
+      db = await ch.open(VECTORPATH);
       try {
         tiles.add(_addInfoTile("Open db", "Try opening: " + VECTORPATH));
         await db.openOrCreate();
@@ -299,7 +328,7 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
         return tiles;
       }
     } finally {
-      db?.close();
+      await ch.close(VECTORPATH);
     }
     return tiles;
   }

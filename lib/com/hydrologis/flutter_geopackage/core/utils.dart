@@ -8,11 +8,9 @@ class SQLException implements Exception {
   String toString() => "SQLException: " + msg;
 }
 
-/**
- * A simple table info.
- *
- * <p>If performance is needed, this should not be used.</p>
- */
+/// A simple table info.
+///
+/// <p>If performance is needed, this should not be used.</p>
 class QueryResult {
   String geomName;
 
@@ -21,19 +19,13 @@ class QueryResult {
   List<Map<String, dynamic>> data = [];
 }
 
-/**
- * Class representing a geometry_columns record.
- *
- * @author Andrea Antonello (www.hydrologis.com)
- */
+/// Class representing a geometry_columns record.
 class GeometryColumn {
   // VARIABLES
   String tableName;
   String geometryColumnName;
 
-  /**
-   * The type, as compatible with {@link EGeometryType#fromGeometryTypeCode(int)} and {@link ESpatialiteGeometryType#forValue(int)}.
-   */
+  /// The type, as compatible with {@link EGeometryType#fromGeometryTypeCode(int)} and {@link ESpatialiteGeometryType#forValue(int)}.
   EGeometryType geometryType;
   int coordinatesDimension;
   int srid;
@@ -59,13 +51,11 @@ class DataType {
   }
 }
 
-/**
- * Entry in a geopackage.
- *
- * <p>This class corresponds to the "geopackage_contents" table.
- *
- * @author Justin Deoliveira, OpenGeo
- */
+/// Entry in a geopackage.
+///
+/// <p>This class corresponds to the "geopackage_contents" table.
+///
+/// @author Justin Deoliveira, OpenGeo
 class Entry {
   String tableName;
   DataType dataType;
@@ -138,14 +128,12 @@ class Entry {
   }
 }
 
-/**
- * Feature entry in a geopackage.
- *
- * <p>This class corresponds to the "geometry_columns" table.
- *
- * @author Justin Deoliveira, OpenGeo
- * @author Niels Charlier
- */
+/// Feature entry in a geopackage.
+///
+/// <p>This class corresponds to the "geometry_columns" table.
+///
+/// @author Justin Deoliveira, OpenGeo
+/// @author Niels Charlier
 class FeatureEntry extends Entry {
   EGeometryType geometryType;
   bool z = false;
@@ -234,15 +222,11 @@ class TileEntry extends Entry {
     this.tileMatrixSetBounds = te.tileMatrixSetBounds == null ? null : new Envelope.fromEnvelope(te.tileMatrixSetBounds);
   }
 
-  /**
-   * Returns the tile matrix set bounds. The bounds are expressed in the same CRS as the entry,
-   * but they might differ in extent (if null, then the tile matrix bounds are supposed to be the
-   * same as the entry)
-   *
-   * @return
-   */
+  /// Returns the tile matrix set bounds. The bounds are expressed in the same CRS as the entry,
+  /// but they might differ in extent (if null, then the tile matrix bounds are supposed to be the
+  /// same as the entry)
   Envelope getTileMatrixSetBounds() {
-    tileMatrixSetBounds != null ? tileMatrixSetBounds : bounds;
+    return tileMatrixSetBounds != null ? tileMatrixSetBounds : bounds;
   }
 
   void setTileMatrixSetBounds(Envelope tileMatrixSetBounds) {
@@ -250,12 +234,10 @@ class TileEntry extends Entry {
   }
 }
 
-/**
- * A TileMatrix inside a Geopackage. Corresponds to the gpkg_tile_matrix table.
- *
- * @author Justin Deoliveira
- * @author Niels Charlier
- */
+/// A TileMatrix inside a Geopackage. Corresponds to the gpkg_tile_matrix table.
+///
+/// @author Justin Deoliveira
+/// @author Niels Charlier
 class TileMatrix {
   int zoomLevel;
   int matrixWidth, matrixHeight;
@@ -449,12 +431,10 @@ class EGeometryType {
     }
   }
 
-  /**
-   * Returns the {@link EGeometryType} for a given {@link Geometry}.
-   *
-   * @param geometry the geometry to check.
-   * @return the type.
-   */
+  /// Returns the {@link EGeometryType} for a given {@link Geometry}.
+  ///
+  /// @param geometry the geometry to check.
+  /// @return the type.
   static EGeometryType forGeometry(Geometry geometry) {
     if (geometry is LineString) {
       return EGeometryType.LINESTRING;
@@ -500,12 +480,10 @@ class EGeometryType {
     return forWktName(typeName);
   }
 
-  /**
-   * Checks if the given geometry is a {@link LineString} (or {@link MultiLineString}) geometry.
-   *
-   * @param geometry the geometry to check.
-   * @return <code>true</code> if there are lines in there.
-   */
+  /// Checks if the given geometry is a {@link LineString} (or {@link MultiLineString}) geometry.
+  ///
+  /// @param geometry the geometry to check.
+  /// @return <code>true</code> if there are lines in there.
   static bool isGeomLine(Geometry geometry) {
     if (geometry is LineString || geometry is MultiLineString) {
       return true;
@@ -513,12 +491,10 @@ class EGeometryType {
     return false;
   }
 
-  /**
-   * Checks if the given geometry is a {@link Polygon} (or {@link MultiPolygon}) geometry.
-   *
-   * @param geometry the geometry to check.
-   * @return <code>true</code> if there are polygons in there.
-   */
+  /// Checks if the given geometry is a {@link Polygon} (or {@link MultiPolygon}) geometry.
+  ///
+  /// @param geometry the geometry to check.
+  /// @return <code>true</code> if there are polygons in there.
   static bool isGeomPolygon(Geometry geometry) {
     if (geometry is Polygon || geometry is MultiPolygon) {
       return true;
@@ -526,12 +502,10 @@ class EGeometryType {
     return false;
   }
 
-  /**
-   * Checks if the given geometry is a {@link Point} (or {@link MultiPoint}) geometry.
-   *
-   * @param geometry the geometry to check.
-   * @return <code>true</code> if there are points in there.
-   */
+  /// Checks if the given geometry is a {@link Point} (or {@link MultiPoint}) geometry.
+  ///
+  /// @param geometry the geometry to check.
+  /// @return <code>true</code> if there are points in there.
   static bool isGeomPoint(Geometry geometry) {
     if (geometry is Point || geometry is MultiPoint) {
       return true;
@@ -539,12 +513,10 @@ class EGeometryType {
     return false;
   }
 
-  /**
-   * Returns the base geometry type for a spatialite geometries types.
-   *
-   * @param value the code.
-   * @return the type.
-   */
+  /// Returns the base geometry type for a spatialite geometries types.
+  ///
+  /// @param value the code.
+  /// @return the type.
   static EGeometryType fromGeometryTypeCode(int value) {
     switch (value) {
       case 0:
@@ -688,20 +660,18 @@ class GeopackageTableNames {
   static const USERDATA = "User Data";
   static const SYSTEM = "System tables";
 
-  /**
-   * Sorts all supplied table names by type.
-   *
-   * <p>
-   * Supported types are:
-   * <ul>
-   * <li>{@value ISpatialTableNames#INTERNALDATA} </li>
-   * <li>{@value ISpatialTableNames#SYSTEM} </li>
-   * </ul>
-   *
-   * @param allTableNames list of all tables.
-   * @param doSort if <code>true</code>, table names are alphabetically sorted.
-   * @return the {@link LinkedHashMap}.
-   */
+  /// Sorts all supplied table names by type.
+  ///
+  /// <p>
+  /// Supported types are:
+  /// <ul>
+  /// <li>{@value ISpatialTableNames#INTERNALDATA} </li>
+  /// <li>{@value ISpatialTableNames#SYSTEM} </li>
+  /// </ul>
+  ///
+  /// @param allTableNames list of all tables.
+  /// @param doSort if <code>true</code>, table names are alphabetically sorted.
+  /// @return the {@link LinkedHashMap}.
   static Map<String, List<String>> getTablesSorted(List<String> allTableNames, bool doSort) {
     Map<String, List<String>> tablesMap = {};
     tablesMap[USERDATA] = [];
