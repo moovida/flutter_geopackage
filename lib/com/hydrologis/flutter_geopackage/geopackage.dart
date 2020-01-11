@@ -898,16 +898,29 @@ class GeopackageDb {
     List<Map<String, dynamic>> result = await _sqliteDb.query(sql);
     result.forEach((map) {
       Map<String, dynamic> newMap = {};
-      map.forEach((k, v) {
-        if (k == queryResult.geomName) {
-          var geomBytes = map[queryResult.geomName];
-          Geometry geom = GeoPkgGeomReader(geomBytes).get();
+      bool doAdd = true;
+      var geomBytes = map[queryResult.geomName];
+      if (geomBytes != null) {
+        Geometry geom = GeoPkgGeomReader(geomBytes).get();
+        if (_supportsRtree || envelope == null) {
           queryResult.geoms.add(geom);
         } else {
-          newMap[k] = v;
+          // if no spatial index is available, filter the geoms manually
+          if (envelope != null && geom.getEnvelopeInternal().intersectsEnvelope(envelope)) {
+            queryResult.geoms.add(geom);
+          } else {
+            doAdd = false;
+          }
         }
-      });
-      queryResult.data.add(newMap);
+      }
+      if (doAdd) {
+        map.forEach((k, v) {
+          if (k != queryResult.geomName) {
+            newMap[k] = v;
+          }
+        });
+        queryResult.data.add(newMap);
+      }
     });
 
     return queryResult;
