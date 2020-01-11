@@ -873,13 +873,25 @@ class GeopackageDb {
     createSpatialIndex(tableName, geomColName);
   }
 
-  Future<QueryResult> getTableData(String tableName, [int limit]) async {
+  Future<QueryResult> getTableData(String tableName, {Envelope envelope, int limit}) async {
     QueryResult queryResult = new QueryResult();
 
     GeometryColumn geometryColumn = await getGeometryColumnsForTable(tableName);
     queryResult.geomName = geometryColumn.geometryColumnName;
 
     String sql = "select * from " + tableName;
+
+    if (envelope != null) {
+      double x1 = envelope.getMinX();
+      double y1 = envelope.getMinY();
+      double x2 = envelope.getMaxX();
+      double y2 = envelope.getMaxY();
+      String spatialindexBBoxWherePiece = await getSpatialindexBBoxWherePiece(tableName, null, x1, y1, x2, y2);
+      if (spatialindexBBoxWherePiece != null) {
+        sql += " WHERE " + spatialindexBBoxWherePiece;
+      }
+    }
+
     if (limit != null) {
       sql += "limit $limit";
     }
