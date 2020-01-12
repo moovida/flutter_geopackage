@@ -786,7 +786,7 @@ class GeopackageDb {
   ///          to apply. They all need to be existing if the parameter is passed.
   /// @return The list of geometries intersecting the envelope.
   /// @throws Exception
-  Future<List<Geometry>> getGeometriesIntersecting(String tableName, {Geometry geometry, List<String> prePostWhere}) async {
+  Future<List<Geometry>> getGeometriesIntersecting(String tableName, {Geometry geometry, List<String> prePostWhere, int limit = -1}) async {
     List<String> wheres = [];
     String pre = "";
     String post = "";
@@ -815,6 +815,10 @@ class GeopackageDb {
 
     if (wheres.length > 0) {
       sql += " WHERE " + wheres.join(" AND ");
+    }
+
+    if (limit > 0) {
+      sql += " limit $limit";
     }
 
     List<Geometry> geoms = [];
