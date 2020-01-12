@@ -882,13 +882,17 @@ class GeopackageDb {
     createSpatialIndex(tableName, geomColName);
   }
 
-  Future<QueryResult> getTableData(String tableName, {Envelope envelope, int limit}) async {
+  Future<QueryResult> getTableData(String tableName, {Envelope envelope, Geometry geometry, int limit}) async {
     QueryResult queryResult = new QueryResult();
 
     GeometryColumn geometryColumn = await getGeometryColumnsForTable(tableName);
     queryResult.geomName = geometryColumn.geometryColumnName;
 
     String sql = "select * from " + tableName;
+
+    if (envelope != null && geometry != null) {
+      throw ArgumentError("Only one of envelope and geometry have to be set.");
+    }
 
     if (envelope != null) {
       double x1 = envelope.getMinX();
@@ -900,6 +904,13 @@ class GeopackageDb {
         sql += " WHERE " + spatialindexBBoxWherePiece;
       }
     }
+    if (geometry != null) {
+      String spatialindexBBoxWherePiece = await getSpatialindexGeometryWherePiece(tableName, null, geometry);
+      if (spatialindexBBoxWherePiece != null) {
+        sql += " WHERE " + spatialindexBBoxWherePiece;
+      }
+    }
+    bool hasBoundsfilter = envelope != null || geometry != null;
 
     if (limit != null) {
       sql += "limit $limit";
@@ -911,11 +922,16 @@ class GeopackageDb {
       var geomBytes = map[queryResult.geomName];
       if (geomBytes != null) {
         Geometry geom = GeoPkgGeomReader(geomBytes).get();
-        if (_supportsRtree || envelope == null) {
+        if (_supportsRtree && geometry == null) {
           queryResult.geoms.add(geom);
         } else {
           // if no spatial index is available, filter the geoms manually
-          if (envelope != null && geom.getEnvelopeInternal().intersectsEnvelope(envelope)) {
+          if (hasBoundsfilter) {
+            // no filter, take them all
+            queryResult.geoms.add(geom);
+          } else if (envelope != null && geom.getEnvelopeInternal().intersectsEnvelope(envelope)) {
+            queryResult.geoms.add(geom);
+          } else if (geometry != null && geom.getEnvelopeInternal().intersectsEnvelope(geometry.getEnvelopeInternal()) && geom.intersects(geometry)) {
             queryResult.geoms.add(geom);
           } else {
             doAdd = false;
