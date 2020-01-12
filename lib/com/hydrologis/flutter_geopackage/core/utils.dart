@@ -14,6 +14,11 @@ class SQLException implements Exception {
 class QueryResult {
   String geomName;
 
+  /// This can optionally be used to identify record sources
+  /// in case of mixed data sources (ex. merging together
+  /// QueryResults from different queries.
+  List<String> ids;
+
   List<Geometry> geoms = [];
 
   List<Map<String, dynamic>> data = [];
