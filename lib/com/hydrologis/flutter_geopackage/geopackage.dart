@@ -926,7 +926,7 @@ class GeopackageDb {
           queryResult.geoms.add(geom);
         } else {
           // if no spatial index is available, filter the geoms manually
-          if (hasBoundsfilter) {
+          if (!hasBoundsfilter) {
             // no filter, take them all
             queryResult.geoms.add(geom);
           } else if (envelope != null && geom.getEnvelopeInternal().intersectsEnvelope(envelope)) {
