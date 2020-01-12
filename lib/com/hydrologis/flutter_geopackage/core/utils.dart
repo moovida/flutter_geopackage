@@ -37,6 +37,23 @@ class GeometryColumn {
   int isSpatialIndexEnabled;
 }
 
+class GeometryUtilities {
+  static Geometry fromEnvelope(Envelope env) {
+    double w = env.getMinX();
+    double e = env.getMaxX();
+    double s = env.getMinY();
+    double n = env.getMaxY();
+
+    return GeometryFactory.defaultPrecision().createPolygonFromCoords([
+      Coordinate(w, s),
+      Coordinate(w, n),
+      Coordinate(e, n),
+      Coordinate(e, s),
+      Coordinate(w, s),
+    ]);
+  }
+}
+
 class DataType {
   static const Feature = const DataType._("features");
   static const Tile = const DataType._("tiles");
