@@ -18,7 +18,7 @@ dependencies:
   cupertino_icons: ^0.1.3
 
   intl: ^0.16.1
-  dart_jts: ^0.0.5+1
+  dart_jts: ^0.0.5+2
 #    git:
 #      url: https://github.com/moovida/dart_jts.git
 
