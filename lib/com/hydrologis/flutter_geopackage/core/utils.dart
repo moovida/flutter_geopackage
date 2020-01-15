@@ -38,12 +38,22 @@ class GeometryColumn {
 }
 
 class GeometryUtilities {
-  static Geometry fromEnvelope(Envelope env) {
+  /// Create a polygon of the supplied [env].
+  ///
+  /// In case of [makeCircle] set to true, a buffer of half the width
+  /// of the [env] is created in the center point.
+  static Geometry fromEnvelope(Envelope env, {bool makeCircle = false}) {
     double w = env.getMinX();
     double e = env.getMaxX();
     double s = env.getMinY();
     double n = env.getMaxY();
 
+    if (makeCircle) {
+      var centre = env.centre();
+      var point = GeometryFactory.defaultPrecision().createPoint(centre);
+      var buffer = point.buffer(env.getWidth() / 2.0);
+      return buffer;
+    }
     return GeometryFactory.defaultPrecision().createPolygonFromCoords([
       Coordinate(w, s),
       Coordinate(w, n),
