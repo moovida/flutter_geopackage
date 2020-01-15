@@ -67,12 +67,10 @@ packages:
   dart_jts:
     dependency: "direct main"
     description:
-      path: "."
-      ref: HEAD
-      resolved-ref: "78c487bdb4c684a883e87a21beb5636380a0221f"
-      url: "https://github.com/moovida/dart_jts.git"
-    source: git
-    version: "0.0.5"
+      name: dart_jts
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "0.0.5+1"
   flutter:
     dependency: "direct main"
     description: flutter
@@ -178,7 +176,7 @@ packages:
       name: sqflite
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "1.1.7+2"
+    version: "1.2.0"
   stack_trace:
     dependency: transitive
     description:
@@ -243,5 +241,5 @@ packages:
     source: hosted
     version: "3.5.0"
 sdks:
-  dart: ">=2.5.0 <3.0.0"
-  flutter: ">=1.9.1 <2.0.0"
+  dart: ">=2.6.0 <3.0.0"
+  flutter: ">=1.10.1 <2.0.0"

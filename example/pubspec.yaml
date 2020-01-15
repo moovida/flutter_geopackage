@@ -30,9 +30,9 @@ dependencies:
   flutter_geopackage:
     path: ../../flutter_geopackage
 
-  dart_jts: #^0.0.5
-    git:
-      url: https://github.com/moovida/dart_jts.git
+  dart_jts: ^0.0.5+1
+#    git:
+#      url: https://github.com/moovida/dart_jts.git
 
 dev_dependencies:
   flutter_test:
