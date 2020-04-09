@@ -1444,10 +1444,10 @@ class ConnectionsHandler {
   /// Close an existing db connection, if all tables bound to it were released.
   Future<void> close(String path, {String tableName}) async {
     var tableNamesList = _tableNamesMap[path];
-    if (tableName != null && tableNamesList.contains(tableName)) {
+    if (tableNamesList != null && tableNamesList.contains(tableName)) {
       tableNamesList.remove(tableName);
     }
-    if (tableNamesList.length == 0) {
+    if (tableNamesList == null || tableNamesList.length == 0) {
       // ok to close db and remove the connection
       _tableNamesMap.remove(path);
       GeopackageDb db = _connectionsMap.remove(path);
