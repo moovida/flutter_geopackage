@@ -90,8 +90,8 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
     List<Widget> tiles = [];
 
     var ch = ConnectionsHandler();
-    ch.DO_RTREE_CHECK = false;
-    ch.FORCE_MOBILE_COMPATIBILITY = false;
+    ch.doRtreeCheck = false;
+    ch.forceRasterMobileCompatibility = false;
 
     GeopackageDb db;
     try {
@@ -147,8 +147,8 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
     List<Widget> tiles = [];
 
     var ch = ConnectionsHandler();
-    ch.DO_RTREE_CHECK = false;
-    ch.FORCE_MOBILE_COMPATIBILITY = false;
+    ch.doRtreeCheck = false;
+    ch.forceVectorMobileCompatibility = false;
 
     GeopackageDb db;
     try {
