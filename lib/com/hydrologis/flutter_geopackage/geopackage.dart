@@ -1318,6 +1318,10 @@ class GeopackageDb {
     return _sqliteDb.updateMap(table, values, where);
   }
 
+  Future<int> update(String updateSql) async {
+    return _sqliteDb.update(updateSql);
+  }
+
 //
 //    void deleteGeometryColumnsEntry( FeatureEntry e ) throws IOException {
 //        String sql = format("DELETE FROM %s WHERE table_name = ?", GEOMETRY_COLUMNS);
