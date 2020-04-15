@@ -2,8 +2,7 @@ import 'package:dart_jts/dart_jts.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_geopackage/flutter_geopackage.dart';
 
-const VECTORPATH = "/storage/emulated/0/gdal_sample.gpkg";
-const TILESPATH = "/storage/emulated/0/tiles_3857.gpkg";
+import 'file_copy_job.dart';
 
 class GeopackageTestView extends StatefulWidget {
   GeopackageTestView({Key key}) : super(key: key);
@@ -13,6 +12,39 @@ class GeopackageTestView extends StatefulWidget {
 }
 
 class _GeopackageTestViewState extends State<GeopackageTestView> {
+  final job = AssetCopyJob(
+    assets: [
+      'testdbs/gdal_sample.gpkg',
+      'testdbs/tiles_3857.gpkg',
+    ],
+    overwrite: false,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+
+    print("copying gpkg files...");
+    job.future.then((_) {
+      print("copying done");
+    }).catchError((e, stack) {
+      print("Error while copying:\n$e");
+      print(stack);
+    });
+  }
+
+  Future<String> _getVectorPath() async {
+    final files = await job.future;
+    if (files[0] == null) throw job.errors[0];
+    return files[0].path;
+  }
+
+  Future<String> _getTilesPath() async {
+    final files = await job.future;
+    if (files[1] == null) throw job.errors[1];
+    return files[1].path;
+  }
+
   Widget _addInfoTile(String title, String message, {color: Colors.white}) {
     return Container(
       color: color,
@@ -73,6 +105,13 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
         future: getWidgets(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.done) {
+            if (snapshot.hasError) {
+              return Text(
+                'getWidgets error: ' + snapshot.error.toString(),
+                style: TextStyle(color: Colors.red),
+              );
+            }
+
             // If the Future is complete, display the preview.
             return ListView(
               children: snapshot.data,
@@ -93,11 +132,13 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
     ch.doRtreeCheck = false;
     ch.forceRasterMobileCompatibility = false;
 
+    String tilesPath;
     GeopackageDb db;
     try {
+      tilesPath = await _getTilesPath();
       try {
-        tiles.add(_addInfoTile("Open db", "Try opening: " + TILESPATH));
-        db = await ch.open(TILESPATH);
+        tiles.add(_addInfoTile("Open db", "Try opening: " + tilesPath));
+        db = await ch.open(tilesPath);
         tiles.add(_addInfoTile("Open db", "Done"));
       } catch (e) {
         tiles.add(_addInfoTile("Open db", "ERROR: ${e.toString()}", color: Colors.red));
@@ -136,8 +177,13 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
         tiles.add(_addInfoTile("Read tile image", "ERROR: ${e.toString()}", color: Colors.red));
         return tiles;
       }
+    } catch (e) {
+      tiles.add(_addInfoTile("Tiles", "ERROR: ${e.toString()}", color: Colors.red));
+      return tiles;
     } finally {
-      await ch.close(TILESPATH);
+      if (tilesPath != null) {
+        await ch.close(tilesPath);
+      }
     }
 
     return tiles;
@@ -150,11 +196,13 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
     ch.doRtreeCheck = false;
     ch.forceVectorMobileCompatibility = false;
 
+    String vectorPath;
     GeopackageDb db;
     try {
-      db = await ch.open(VECTORPATH);
+      vectorPath = await _getVectorPath();
+      db = await ch.open(vectorPath);
       try {
-        tiles.add(_addInfoTile("Open db", "Try opening: " + VECTORPATH));
+        tiles.add(_addInfoTile("Open db", "Try opening: " + vectorPath));
         await db.openOrCreate();
         tiles.add(_addInfoTile("Open db", "Done"));
       } catch (e) {
@@ -327,8 +375,13 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
         tiles.add(_addInfoTile("Table point3d", "ERROR: ${e.toString()}", color: Colors.red));
         return tiles;
       }
+    } catch (e) {
+      tiles.add(_addInfoTile("Vectors", "ERROR: ${e.toString()}", color: Colors.red));
+      return tiles;
     } finally {
-      await ch.close(VECTORPATH);
+      if (vectorPath != null) {
+        await ch.close(vectorPath);
+      }
     }
     return tiles;
   }
