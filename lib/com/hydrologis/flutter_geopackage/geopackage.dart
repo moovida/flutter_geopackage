@@ -26,6 +26,9 @@ class GeopackageDb {
 
   static const String EXTENSIONS = "gpkg_extensions";
 
+  /// RTree is not supported until issue https://github.com/moovida/flutter_geopackage/issues/2
+  /// has been fixed.
+  static const RTREE_CREATION_SUPPORTED = false;
   static const String SPATIAL_INDEX = "gpkg_spatial_index";
 
   static const String DATE_FORMAT_STRING = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
@@ -1109,26 +1112,26 @@ class GeopackageDb {
 //    }
 //  }
 
-  /**
-   * Create a spatial index
-   *
-   * @param e feature entry to create spatial index for
-   */
+  /// Create a spatial index
+  ///
+  /// @param e feature entry to create spatial index for
   Future<void> createSpatialIndex(String tableName, String geometryName) async {
-    String pk = await getPrimaryKey(tableName);
-    if (pk == null) {
-      throw new IOException(
-          "Spatial index only supported for primary key of single column.");
+    if (RTREE_CREATION_SUPPORTED) {
+      String pk = await getPrimaryKey(tableName);
+      if (pk == null) {
+        throw new IOException(
+            "Spatial index only supported for primary key of single column.");
+      }
+
+      String sqlString =
+          await rootBundle.loadString("assets/" + SPATIAL_INDEX + ".sql");
+
+      sqlString = sqlString.replaceAll("\$\{t\}", tableName);
+      sqlString = sqlString.replaceAll("\$\{c\}", geometryName);
+      sqlString = sqlString.replaceAll("\$\{i\}", pk);
+
+      await _sqliteDb.execute(sqlString);
     }
-
-    String sqlString =
-        await rootBundle.loadString("assets/" + SPATIAL_INDEX + ".sql");
-
-    sqlString = sqlString.replaceAll("\$\{t\}", tableName);
-    sqlString = sqlString.replaceAll("\$\{c\}", geometryName);
-    sqlString = sqlString.replaceAll("\$\{i\}", pk);
-
-    await _sqliteDb.execute(sqlString);
   }
 
   Future<void> addGeoPackageContentsEntry(String tableName, int srid,
