@@ -1,6 +1,7 @@
 import 'package:dart_jts/dart_jts.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_geopackage/flutter_geopackage.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import 'file_copy_job.dart';
 
@@ -11,7 +12,18 @@ class GeopackageTestView extends StatefulWidget {
   _GeopackageTestViewState createState() => _GeopackageTestViewState();
 }
 
+enum states {
+  STARTUP,
+  LOADED,
+  PREMISSIONERROR,
+  FILECOPYERROR,
+}
+
 class _GeopackageTestViewState extends State<GeopackageTestView> {
+  /// Loading state: 0=startuop, 1=loaded, -1=no storage permission
+  states _currentState = states.STARTUP;
+  List<Widget> _widgets;
+
   final job = AssetCopyJob(
     assets: [
       'testdbs/gdal_sample.gpkg',
@@ -24,13 +36,46 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
   void initState() {
     super.initState();
 
-    print("copying gpkg files...");
-    job.future.then((_) {
-      print("copying done");
-    }).catchError((e, stack) {
-      print("Error while copying:\n$e");
-      print(stack);
-    });
+    init();
+  }
+
+  /// do initial configuration work
+  Future init() async {
+    var storagePermission = await _checkStoragePermissions();
+    if (!storagePermission) {
+      _currentState = states.PREMISSIONERROR;
+    } else {
+      print("copying gpkg files...");
+      job.future.then((_) async {
+        print("copying done");
+        _currentState = states.LOADED;
+
+        _widgets = await getWidgets();
+        setState(() {});
+      }).catchError((e, stack) {
+        print("Error while copying:\n$e");
+        print(stack);
+        _currentState = states.FILECOPYERROR;
+        setState(() {});
+      });
+    }
+  }
+
+  Future<bool> _checkStoragePermissions() async {
+    PermissionStatus permission = await PermissionHandler()
+        .checkPermissionStatus(PermissionGroup.storage);
+    if (permission != PermissionStatus.granted) {
+      print("Storage permission is not granted.");
+      Map<PermissionGroup, PermissionStatus> permissionsMap =
+          await PermissionHandler()
+              .requestPermissions([PermissionGroup.storage]);
+      if (permissionsMap[PermissionGroup.storage] != PermissionStatus.granted) {
+        print("Unable to grant permission: ${PermissionGroup.storage}");
+        return false;
+      }
+    }
+    print("Storage permission granted.");
+    return true;
   }
 
   Future<String> _getVectorPath() async {
@@ -55,7 +100,8 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
     );
   }
 
-  Widget _addMultiInfoTile(String title, List<String> messages, {color: Colors.white}) {
+  Widget _addMultiInfoTile(String title, List<String> messages,
+      {color: Colors.white}) {
     return Container(
       color: color,
       child: ListTile(
@@ -75,21 +121,24 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
     var ch = ConnectionsHandler();
     var reports = ch.getOpenDbReport();
 
-    var widget = _addMultiInfoTile("Db Handler Report", reports, color: Colors.orange);
+    var widget =
+        _addMultiInfoTile("Db Handler Report", reports, color: Colors.orange);
     widgets.add(widget);
 
     List<Widget> vector = await getVectorWidgets();
     widgets.addAll(vector);
 
     reports = ch.getOpenDbReport();
-    widget = _addMultiInfoTile("Db Handler Report", reports, color: Colors.orange);
+    widget =
+        _addMultiInfoTile("Db Handler Report", reports, color: Colors.orange);
     widgets.add(widget);
 
     List<Widget> tiles = await getTilesWidgets();
     widgets.addAll(tiles);
 
     reports = ch.getOpenDbReport();
-    widget = _addMultiInfoTile("Db Handler Report", reports, color: Colors.orange);
+    widget =
+        _addMultiInfoTile("Db Handler Report", reports, color: Colors.orange);
     widgets.add(widget);
 
     return widgets;
@@ -98,31 +147,34 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Test App Geopackage"),
-      ),
-      body: FutureBuilder<List<Widget>>(
-        future: getWidgets(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.done) {
-            if (snapshot.hasError) {
-              return Text(
-                'getWidgets error: ' + snapshot.error.toString(),
-                style: TextStyle(color: Colors.red),
-              );
-            }
-
-            // If the Future is complete, display the preview.
-            return ListView(
-              children: snapshot.data,
-            );
-          } else {
-            // Otherwise, display a loading indicator.
-            return Center(child: CircularProgressIndicator());
-          }
-        },
-      ),
-    );
+        appBar: AppBar(
+          title: Text("Test App Geopackage"),
+        ),
+        body: _currentState == states.STARTUP
+            ? Center(child: CircularProgressIndicator())
+            : _currentState == states.PREMISSIONERROR
+                ? Center(
+                    child: Text(
+                      "This example app need the storage permission to work.",
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  )
+                : _currentState == states.FILECOPYERROR
+                    ? Center(
+                        child: Text(
+                          "An error occurred while loading the test files.",
+                          style: TextStyle(
+                            color: Colors.red,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      )
+                    : ListView(
+                        children: _widgets,
+                      ));
   }
 
   Future<List<Widget>> getTilesWidgets() async {
@@ -141,20 +193,24 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
         db = await ch.open(tilesPath);
         tiles.add(_addInfoTile("Open db", "Done"));
       } catch (e) {
-        tiles.add(_addInfoTile("Open db", "ERROR: ${e.toString()}", color: Colors.red));
+        tiles.add(_addInfoTile("Open db", "ERROR: ${e.toString()}",
+            color: Colors.red));
         return tiles;
       }
       try {
         List<TileEntry> tilesList = await db.tiles();
-        tiles.add(_addInfoTile("Tiles tables count", "found tiles tables: ${tilesList.length}"));
+        tiles.add(_addInfoTile(
+            "Tiles tables count", "found tiles tables: ${tilesList.length}"));
       } catch (e) {
-        tiles.add(_addInfoTile("Tiles tables count", "ERROR: ${e.toString()}", color: Colors.red));
+        tiles.add(_addInfoTile("Tiles tables count", "ERROR: ${e.toString()}",
+            color: Colors.red));
         return tiles;
       }
       try {
         TileEntry entry = await db.tile('tiles');
         List<TileMatrix> tileMatricies = entry.getTileMatricies();
-        tiles.add(_addInfoTile("Tile matrix levels", "level count: ${tileMatricies.length}"));
+        tiles.add(_addInfoTile(
+            "Tile matrix levels", "level count: ${tileMatricies.length}"));
         tileMatricies.forEach((tm) {
           var zl = tm.zoomLevel;
           var cols = tm.matrixWidth;
@@ -164,21 +220,26 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
           var xPixelSize = tm.xPixelSize;
           var yPixelSize = tm.yPixelSize;
 
-          tiles.add(_addInfoTile("Tile level Z=$zl", "cols=$cols; rows=$rows; tw=$tw; th=$th; xres=$xPixelSize; yres=$yPixelSize"));
+          tiles.add(_addInfoTile("Tile level Z=$zl",
+              "cols=$cols; rows=$rows; tw=$tw; th=$th; xres=$xPixelSize; yres=$yPixelSize"));
         });
       } catch (e) {
-        tiles.add(_addInfoTile("Tile matrix levels", "ERROR: ${e.toString()}", color: Colors.red));
+        tiles.add(_addInfoTile("Tile matrix levels", "ERROR: ${e.toString()}",
+            color: Colors.red));
         return tiles;
       }
       try {
         List<int> tileBytes = await db.getTile('tiles', 0, 0, 1);
-        tiles.add(_addInfoTile("Read tile image", "tile bytes size at 0,0,1: ${tileBytes.length}"));
+        tiles.add(_addInfoTile("Read tile image",
+            "tile bytes size at 0,0,1: ${tileBytes.length}"));
       } catch (e) {
-        tiles.add(_addInfoTile("Read tile image", "ERROR: ${e.toString()}", color: Colors.red));
+        tiles.add(_addInfoTile("Read tile image", "ERROR: ${e.toString()}",
+            color: Colors.red));
         return tiles;
       }
     } catch (e) {
-      tiles.add(_addInfoTile("Tiles", "ERROR: ${e.toString()}", color: Colors.red));
+      tiles.add(
+          _addInfoTile("Tiles", "ERROR: ${e.toString()}", color: Colors.red));
       return tiles;
     } finally {
       if (tilesPath != null) {
@@ -206,19 +267,23 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
         await db.openOrCreate();
         tiles.add(_addInfoTile("Open db", "Done"));
       } catch (e) {
-        tiles.add(_addInfoTile("Open db", "ERROR: ${e.toString()}", color: Colors.red));
+        tiles.add(_addInfoTile("Open db", "ERROR: ${e.toString()}",
+            color: Colors.red));
         return tiles;
       }
 
-      tiles.add(_addInfoTile("General info", "Sqlite version supports spatial index (rtree): ${db.supportsSpatialIndex}\nGeopackage version: ${db.version}"));
+      tiles.add(_addInfoTile("General info",
+          "Sqlite version supports spatial index (rtree): ${db.supportsSpatialIndex}\nGeopackage version: ${db.version}"));
 
       try {
         Map<String, List<String>> tablesMap = await db.getTablesMap(false);
         List<String> tables = tablesMap[GeopackageTableNames.USERDATA];
         assert(tables.length == 16);
-        tiles.add(_addInfoTile("Check tables", "Found ${tables.length} tables."));
+        tiles.add(
+            _addInfoTile("Check tables", "Found ${tables.length} tables."));
       } catch (e) {
-        tiles.add(_addInfoTile("Check tables", "ERROR: ${e.toString()}", color: Colors.red));
+        tiles.add(_addInfoTile("Check tables", "ERROR: ${e.toString()}",
+            color: Colors.red));
         return tiles;
       }
 
@@ -226,7 +291,8 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
         String point2DTable = "point2d";
         bool hasSpatialIndex = await db.hasSpatialIndex(point2DTable);
 
-        GeometryColumn geometryColumn = await db.getGeometryColumnsForTable(point2DTable);
+        GeometryColumn geometryColumn =
+            await db.getGeometryColumnsForTable(point2DTable);
 
         List<Geometry> geometries = await db.getGeometriesIn(point2DTable);
         geometries.removeWhere((g) => g == null);
@@ -244,7 +310,8 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
                 geometries[0].toText() //
             ));
       } catch (e) {
-        tiles.add(_addInfoTile("Table point2d", "ERROR: ${e.toString()}", color: Colors.red));
+        tiles.add(_addInfoTile("Table point2d", "ERROR: ${e.toString()}",
+            color: Colors.red));
         return tiles;
       }
 
@@ -252,7 +319,8 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
         String line2DTable = "linestring2d";
         bool hasSpatialIndex = await db.hasSpatialIndex(line2DTable);
 
-        GeometryColumn geometryColumn = await db.getGeometryColumnsForTable(line2DTable);
+        GeometryColumn geometryColumn =
+            await db.getGeometryColumnsForTable(line2DTable);
         assert(4326 == geometryColumn.srid);
         List<Geometry> geometries = await db.getGeometriesIn(line2DTable);
         geometries.removeWhere((g) => g == null);
@@ -269,7 +337,8 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
                 geometries[0].toText() //
             ));
       } catch (e) {
-        tiles.add(_addInfoTile("Table linestring2d", "ERROR: ${e.toString()}", color: Colors.red));
+        tiles.add(_addInfoTile("Table linestring2d", "ERROR: ${e.toString()}",
+            color: Colors.red));
         return tiles;
       }
 
@@ -277,13 +346,16 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
         // with spatial index
         String polygon2DTable = "polygon2d";
         bool hasSpatialIndex = await db.hasSpatialIndex(polygon2DTable);
-        GeometryColumn geometryColumn = await db.getGeometryColumnsForTable(polygon2DTable);
+        GeometryColumn geometryColumn =
+            await db.getGeometryColumnsForTable(polygon2DTable);
         assert(32631 == geometryColumn.srid);
         List<Geometry> geometries = await db.getGeometriesIn(polygon2DTable);
         geometries.removeWhere((g) => g == null);
 
         assert(1 == geometries.length);
-        assert("POLYGON ((0 0, 0 10, 10 10, 10 0, 0 0), (1 1, 1 9, 9 9, 9 1, 1 1))" == geometries[0].toText());
+        assert(
+            "POLYGON ((0 0, 0 10, 10 10, 10 0, 0 0), (1 1, 1 9, 9 9, 9 1, 1 1))" ==
+                geometries[0].toText());
 
         tiles.add(_addInfoTile(
             "Table polygon2d",
@@ -295,7 +367,8 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
                 geometries[0].toText() //
             ));
       } catch (e) {
-        tiles.add(_addInfoTile("Table polygon2d", "ERROR: ${e.toString()}", color: Colors.red));
+        tiles.add(_addInfoTile("Table polygon2d", "ERROR: ${e.toString()}",
+            color: Colors.red));
         return tiles;
       }
 
@@ -318,7 +391,8 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
                 geometries[0].toText() //
             ));
       } catch (e) {
-        tiles.add(_addInfoTile("Table multipoint2d", "ERROR: ${e.toString()}", color: Colors.red));
+        tiles.add(_addInfoTile("Table multipoint2d", "ERROR: ${e.toString()}",
+            color: Colors.red));
         return tiles;
       }
 
@@ -327,17 +401,21 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
         bool hasSpatialIndex = await db.hasSpatialIndex(geomcollection2DTable);
         assert(hasSpatialIndex);
 
-        List<Geometry> geometries = await db.getGeometriesIn(geomcollection2DTable);
+        List<Geometry> geometries =
+            await db.getGeometriesIn(geomcollection2DTable);
         geometries.removeWhere((g) => g == null);
         assert(4 == geometries.length);
 
         // using the spatial index (or just bounds if no index supported)
         var env = Envelope(9, 11, 9, 11);
-        List<Geometry> geometriesE = await db.getGeometriesIn(geomcollection2DTable, envelope: env);
+        List<Geometry> geometriesE =
+            await db.getGeometriesIn(geomcollection2DTable, envelope: env);
         assert(2 == geometriesE.length);
 
-        Geometry geom = WKTReader().read("POLYGON ((2.65 5.3, 4.875 3.7, 2.9 5.65, 2.65 5.3))");
-        List<Geometry> geometriesPol = await db.getGeometriesIntersecting(geomcollection2DTable, geometry: geom);
+        Geometry geom = WKTReader()
+            .read("POLYGON ((2.65 5.3, 4.875 3.7, 2.9 5.65, 2.65 5.3))");
+        List<Geometry> geometriesPol = await db
+            .getGeometriesIntersecting(geomcollection2DTable, geometry: geom);
         assert(1 == geometriesPol.length);
 
         tiles.add(_addInfoTile(
@@ -350,7 +428,9 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
                 geometries[0].toText() //
             ));
       } catch (e) {
-        tiles.add(_addInfoTile("Table geomcollection2d", "ERROR: ${e.toString()}", color: Colors.red));
+        tiles.add(_addInfoTile(
+            "Table geomcollection2d", "ERROR: ${e.toString()}",
+            color: Colors.red));
         return tiles;
       }
 
@@ -372,11 +452,13 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
                 geometries[0].toText() //
             ));
       } catch (e) {
-        tiles.add(_addInfoTile("Table point3d", "ERROR: ${e.toString()}", color: Colors.red));
+        tiles.add(_addInfoTile("Table point3d", "ERROR: ${e.toString()}",
+            color: Colors.red));
         return tiles;
       }
     } catch (e) {
-      tiles.add(_addInfoTile("Vectors", "ERROR: ${e.toString()}", color: Colors.red));
+      tiles.add(
+          _addInfoTile("Vectors", "ERROR: ${e.toString()}", color: Colors.red));
       return tiles;
     } finally {
       if (vectorPath != null) {
