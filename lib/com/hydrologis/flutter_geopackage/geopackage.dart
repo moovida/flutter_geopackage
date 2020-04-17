@@ -114,31 +114,27 @@ class GeopackageDb {
     }
 
     if (!_isGpgkInitialized) {
-      String sqlString =
-          await rootBundle.loadString("assets/" + SPATIAL_REF_SYS + ".sql");
-      sqlString +=
-          await rootBundle.loadString("assets/" + GEOMETRY_COLUMNS + ".sql");
-      sqlString +=
-          await rootBundle.loadString("assets/" + GEOPACKAGE_CONTENTS + ".sql");
-      sqlString +=
-          await rootBundle.loadString("assets/" + TILE_MATRIX_SET + ".sql");
-      sqlString += await rootBundle
-          .loadString("assets/" + TILE_MATRIX_METADATA + ".sql");
-      sqlString +=
-          await rootBundle.loadString("assets/" + RASTER_COLUMNS + ".sql");
-      sqlString += await rootBundle.loadString("assets/" + METADATA + ".sql");
-      sqlString +=
-          await rootBundle.loadString("assets/" + METADATA_REFERENCE + ".sql");
-      sqlString += await rootBundle
-          .loadString("assets/" + DATA_COLUMN_CONSTRAINTS + ".sql");
-      sqlString += await rootBundle.loadString("assets/" + EXTENSIONS + ".sql");
+      String sqlString = SPATIAL_REF_SYS;
+      sqlString += GEOMETRY_COLUMNS;
+      sqlString += GEOPACKAGE_CONTENTS;
+      sqlString += TILE_MATRIX_SET;
+      sqlString += TILE_MATRIX_METADATA;
+      sqlString += RASTER_COLUMNS;
+      sqlString += METADATA;
+      sqlString += METADATA_REFERENCE;
+      sqlString += DATA_COLUMN_CONSTRAINTS;
+      sqlString += EXTENSIONS;
 
       addDefaultSpatialReferences();
 
-      var split = sqlString.replaceAll("\n", "").trim().split(";");
+      var lines = sqlString.split("\n");
+      lines.removeWhere((line)=> line.trim().startsWith("--"));
+      sqlString = lines.join(" ");
+      var split = sqlString.trim().split(";");
       for (int i = 0; i < split.length; i++) {
         var sql = split[i].trim();
         if (sql.length > 0 && !sql.startsWith("--")) {
+          print(sql);
           _sqliteDb.execute(sql);
         }
       }
@@ -719,14 +715,24 @@ class GeopackageDb {
           "Spatial index only supported for primary key of single column.");
     }
 
-    String sqlString =
-        await rootBundle.loadString("assets/" + SPATIAL_INDEX + ".sql");
+    String sqlString = SPATIAL_INDEX;
 
-    sqlString = sqlString.replaceAll("\$\{t\}", tableName);
-    sqlString = sqlString.replaceAll("\$\{c\}", geometryName);
-    sqlString = sqlString.replaceAll("\$\{i\}", pk);
+    sqlString = sqlString.replaceAll("TTT", tableName);
+    sqlString = sqlString.replaceAll("CCC", geometryName);
+    sqlString = sqlString.replaceAll("III", pk);
 
-    _sqliteDb.execute(sqlString);
+
+    var lines = sqlString.split("\n");
+    lines.removeWhere((line)=> line.trim().startsWith("--"));
+    sqlString = lines.join(" ");
+    var split = sqlString.trim().split(";");
+    for (int i = 0; i < split.length; i++) {
+      var sql = split[i].trim();
+      if (sql.length > 0 && !sql.startsWith("--")) {
+        print(sql);
+        _sqliteDb.execute(sql);
+      }
+    }
   }
 
   void addGeoPackageContentsEntry(

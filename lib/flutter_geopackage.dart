@@ -9,7 +9,6 @@ import "dart:typed_data" ;
 import 'package:intl/intl.dart';
 import "dart:math" as math;
 import 'package:dart_jts/dart_jts.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:moor_ffi/database.dart';
 
 part 'com/hydrologis/flutter_geopackage/core/database.dart';

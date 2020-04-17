@@ -24,7 +24,8 @@ class SqliteDb {
   }
 
   void close() {
-    return _db.close();
+    _isClosed = true;
+    return _db?.close();
   }
 
   /// This should only be used when a custom function is necessary,

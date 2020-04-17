@@ -8,7 +8,7 @@ void main() async {
   GeopackageDb vectorDb;
   GeopackageDb rasterDb;
 
-  setUp(() async {
+  setUpAll(() async {
     var ch = ConnectionsHandler();
     File vectorDbFile = File("./test/gdal_sample.gpkg");
     vectorDb = await ch.open(vectorDbFile.path);
@@ -18,7 +18,7 @@ void main() async {
     rasterDb.openOrCreate();
   });
 
-  tearDown(() {
+  tearDownAll(() {
     vectorDb?.close();
     rasterDb?.close();
   });

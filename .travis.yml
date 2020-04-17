@@ -1,5 +1,7 @@
 language: dart
 
+os: osx
+
 dart:
   - stable
   - dev
