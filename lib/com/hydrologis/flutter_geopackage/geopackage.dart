@@ -927,24 +927,28 @@ class GeopackageDb {
     return list;
   }
 
-  Future<int> update(String updateSql) async {
+  int update(String updateSql) {
     return _sqliteDb.update(updateSql);
+  }
+
+  Iterable<Row> select(String sql) {
+    return _sqliteDb.select(sql);
   }
 
   void createFunctions() {
     var moorDb = _sqliteDb.getInternalDb();
 
     moorDb.createFunction("ST_MinX", 1, Pointer.fromFunction(minXFunction),
-        isDeterministic: true);
+        isDeterministic: true, directOnly: false);
     moorDb.createFunction("ST_MaxX", 1, Pointer.fromFunction(maxXFunction),
-        isDeterministic: true);
+        isDeterministic: true, directOnly: false);
     moorDb.createFunction("ST_MinY", 1, Pointer.fromFunction(minYFunction),
-        isDeterministic: true);
+        isDeterministic: true, directOnly: false);
     moorDb.createFunction("ST_MaxY", 1, Pointer.fromFunction(maxYFunction),
-        isDeterministic: true);
+        isDeterministic: true, directOnly: false);
     moorDb.createFunction(
         "ST_IsEmpty", 1, Pointer.fromFunction(isEmptyFunction),
-        isDeterministic: true);
+        isDeterministic: true, directOnly: false);
 
     // database.create_function("ST_MinX", 1, new GPGeometryFunction(){
     //     @Override
