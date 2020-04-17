@@ -26,9 +26,6 @@ class GeopackageDb {
 
   static const String EXTENSIONS = "gpkg_extensions";
 
-  /// RTree is not supported until issue https://github.com/moovida/flutter_geopackage/issues/2
-  /// has been fixed.
-  static const RTREE_CREATION_SUPPORTED = false;
   static const String SPATIAL_INDEX = "gpkg_spatial_index";
 
   static const String DATE_FORMAT_STRING = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
@@ -89,9 +86,8 @@ class GeopackageDb {
     // greater
     // 1196437808 (the 32-bit integer value of 0x47503130 or GP10 in ASCII) for GPKG 1.0 or
     // 1.1
-    List<Map<String, dynamic>> res =
-        await _sqliteDb.query("PRAGMA application_id");
-    int appId = res[0]['application_id'];
+    var res = _sqliteDb.select("PRAGMA application_id");
+    int appId = res.first['application_id'];
     if (0x47503130 == appId) {
       _gpkgVersion = "1.0/1.1";
     } else if (0x47504B47 == appId) {
@@ -100,15 +96,17 @@ class GeopackageDb {
 
     _isGpgkInitialized = _gpkgVersion != null;
 
+    createFunctions();
+
     if (doRtreeTestCheck) {
       try {
         String checkTable = "rtree_test_check";
         String checkRtree = "CREATE VIRTUAL TABLE " +
             checkTable +
             " USING rtree(id, minx, maxx, miny, maxy)";
-        await _sqliteDb.execute(checkRtree);
+        _sqliteDb.execute(checkRtree);
         String drop = "DROP TABLE " + checkTable;
-        await _sqliteDb.execute(drop);
+        _sqliteDb.execute(drop);
         _supportsRtree = true;
       } catch (e) {
         _supportsRtree = false;
@@ -137,15 +135,13 @@ class GeopackageDb {
 
       addDefaultSpatialReferences();
 
-      await _sqliteDb.transaction((tx) async {
-        var split = sqlString.replaceAll("\n", "").trim().split(";");
-        for (int i = 0; i < split.length; i++) {
-          var sql = split[i].trim();
-          if (sql.length > 0 && !sql.startsWith("--")) {
-            await tx.execute(sql);
-          }
+      var split = sqlString.replaceAll("\n", "").trim().split(";");
+      for (int i = 0; i < split.length; i++) {
+        var sql = split[i].trim();
+        if (sql.length > 0 && !sql.startsWith("--")) {
+          _sqliteDb.execute(sql);
         }
-      });
+      }
 
       _sqliteDb.execute("PRAGMA application_id = 0x47503130;");
       _gpkgVersion = "1.0/1.1";
@@ -161,18 +157,20 @@ class GeopackageDb {
   String get version => _gpkgVersion;
 
   /// Lists all the feature entries in the geopackage. */
-  Future<List<FeatureEntry>> features() async {
+  List<FeatureEntry> features() {
     String compat =
         forceVectorMobileCompatibility ? "and c.srs_id = $WGS84LL_SRID" : "";
-    String sql =
-        "SELECT a.*, b.column_name, b.geometry_type_name, b.z, b.m, c.organization_coordsys_id, c.definition" +
-            " FROM $GEOPACKAGE_CONTENTS a, $GEOMETRY_COLUMNS b, $SPATIAL_REF_SYS c WHERE a.table_name = b.table_name" +
-            " AND a.srs_id = c.srs_id AND a.data_type = ? $compat";
-    var res = await _sqliteDb.query(sql, [DataType.Feature.value]);
+    String sql = """
+        SELECT a.*, b.column_name, b.geometry_type_name, b.z, b.m, c.organization_coordsys_id, c.definition
+        FROM $GEOPACKAGE_CONTENTS a, $GEOMETRY_COLUMNS b, $SPATIAL_REF_SYS c WHERE a.table_name = b.table_name
+        AND a.srs_id = c.srs_id AND a.data_type = ? $compat
+        """
+        .trim();
+    var res = _sqliteDb.select(sql, [DataType.Feature.value]);
 
     List<FeatureEntry> contents = [];
-    res.forEach((map) {
-      contents.add(createFeatureEntry(map));
+    res.forEach((row) {
+      contents.add(createFeatureEntry(row));
     });
 
     return contents;
@@ -182,86 +180,95 @@ class GeopackageDb {
   ///
   /// @param name THe name of the feature entry.
   /// @return The entry, or <code>null</code> if no such entry exists.
-  Future<FeatureEntry> feature(String name) async {
-    if (!await _sqliteDb.hasTable(GEOMETRY_COLUMNS)) {
+  FeatureEntry feature(String name) {
+    if (!_sqliteDb.hasTable(GEOMETRY_COLUMNS)) {
       return null;
     }
     String compat =
         forceVectorMobileCompatibility ? "and c.srs_id = $WGS84LL_SRID" : "";
-    String sql =
-        "SELECT a.*, b.column_name, b.geometry_type_name, b.m, b.z, c.organization_coordsys_id, c.definition" +
-            " FROM $GEOPACKAGE_CONTENTS a, $GEOMETRY_COLUMNS b, $SPATIAL_REF_SYS c WHERE a.table_name = b.table_name " +
-            " AND a.srs_id = c.srs_id $compat AND lower(a.table_name) = lower(?)" +
-            " AND a.data_type = ?";
+    String sql = """
+        SELECT a.*, b.column_name, b.geometry_type_name, b.m, b.z, c.organization_coordsys_id, c.definition
+        FROM $GEOPACKAGE_CONTENTS a, $GEOMETRY_COLUMNS b, $SPATIAL_REF_SYS c WHERE a.table_name = b.table_name
+        AND a.srs_id = c.srs_id $compat AND lower(a.table_name) = lower(?)
+        AND a.data_type = ?
+        """;
 
-    var res = await _sqliteDb.query(sql, [name, DataType.Feature.value]);
+    var res = _sqliteDb.select(sql, [name, DataType.Feature.value]);
     if (res.isNotEmpty) {
-      return createFeatureEntry(res[0]);
+      return createFeatureEntry(res.first);
     }
     return null;
   }
 
   /// Lists all the tile entries in the geopackage. */
-  Future<List<TileEntry>> tiles() async {
+  List<TileEntry> tiles() {
     String compat =
         forceRasterMobileCompatibility ? "and c.srs_id = $MERCATOR_SRID" : "";
-    String sql = "SELECT a.*, c.organization_coordsys_id, c.definition" +
-        " FROM $GEOPACKAGE_CONTENTS a, $SPATIAL_REF_SYS c" +
-        " WHERE a.srs_id = c.srs_id $compat AND a.data_type = ?";
+    String sql = """
+    SELECT a.*, c.organization_coordsys_id, c.definition
+    FROM $GEOPACKAGE_CONTENTS a, $SPATIAL_REF_SYS c
+    WHERE a.srs_id = c.srs_id $compat AND a.data_type = ?
+    """;
 
-    var res = await _sqliteDb.query(sql, [DataType.Tile.value]);
+    var res = _sqliteDb.select(sql, [DataType.Tile.value]);
     List<TileEntry> contents = [];
-    for (int i = 0; i < res.length; i++) {
-      var map = res[i];
-      var tileEntry = await createTileEntry(map);
+    res.forEach((row) {
+      var tileEntry = createTileEntry(row);
       contents.add(tileEntry);
-    }
+    });
     return contents;
   }
 
-  Future<TileEntry> createTileEntry(Map<String, dynamic> map) async {
+  TileEntry createTileEntry(Row row) {
     TileEntry e = new TileEntry();
-    e.setIdentifier(map["identifier"]);
-    e.setDescription(map["description"]);
-    e.setTableName(map["table_name"]);
-    int srid = (map["srs_id"] as num).toInt();
+    e.setIdentifier(row["identifier"]);
+    e.setDescription(row["description"]);
+    e.setTableName(row["table_name"]);
+    int srid = (row["srs_id"] as num).toInt();
     e.setSrid(srid);
     e.setBounds(new Envelope(
-      (map["min_x"] as num).toDouble(),
-      (map["max_x"] as num).toDouble(),
-      (map["min_y"] as num).toDouble(),
-      (map["max_y"] as num).toDouble(),
+      (row["min_x"] as num).toDouble(),
+      (row["max_x"] as num).toDouble(),
+      (row["min_y"] as num).toDouble(),
+      (row["max_y"] as num).toDouble(),
     ));
 
-    String sql =
-        "SELECT *, exists(SELECT 1 FROM ${DbsUtilities.fixTableName(e.getTableName())} data where data.zoom_level = tileMatrix.zoom_level) as has_tiles" +
-            " FROM $TILE_MATRIX_METADATA as tileMatrix WHERE table_name = ? ORDER BY zoom_level ASC";
+    String sql = """
+        SELECT *, exists(
+            SELECT 1 FROM ${DbsUtilities.fixTableName(e.getTableName())} data 
+            where data.zoom_level = tileMatrix.zoom_level
+        ) as has_tiles
+        FROM $TILE_MATRIX_METADATA as tileMatrix 
+        WHERE table_name = ? 
+        ORDER BY zoom_level ASC
+        """;
     // load all the tile matrix entries (and join with the data table to see if a certain level
     // has tiles available, given the indexes in the data table, it should be real quick)
-    var res = await _sqliteDb.query(sql, [e.getTableName()]);
-    for (int i = 0; i < res.length; i++) {
-      var resMap = res[i];
-      var zl = (resMap["zoom_level"] as num).toInt();
-      var mw = (resMap["matrix_width"] as num).toInt();
-      var mh = (resMap["matrix_height"] as num).toInt();
-      var tw = (resMap["tile_width"] as num).toInt();
-      var th = (resMap["tile_height"] as num).toInt();
-      var pxs = (resMap["pixel_x_size"] as num).toDouble();
-      var pys = (resMap["pixel_y_size"] as num).toDouble();
-      var has = resMap["has_tiles"];
+    var res = _sqliteDb.select(sql, [e.getTableName()]);
+    res.forEach((resRow) {
+      var zl = (resRow["zoom_level"] as num).toInt();
+      var mw = (resRow["matrix_width"] as num).toInt();
+      var mh = (resRow["matrix_height"] as num).toInt();
+      var tw = (resRow["tile_width"] as num).toInt();
+      var th = (resRow["tile_height"] as num).toInt();
+      var pxs = (resRow["pixel_x_size"] as num).toDouble();
+      var pys = (resRow["pixel_y_size"] as num).toDouble();
+      var has = resRow["has_tiles"];
 
       TileMatrix m = TileMatrix(zl, mw, mh, tw, th, pxs, pys)
         ..setTiles(has == 1 ? true : false);
 
       e.getTileMatricies().add(m);
-    }
+    });
 
     // use the tile matrix set bounds rather that gpkg_contents bounds
     // per spec, the tile matrix set bounds should be exact and used to calculate tile
     // coordinates and in contrast the gpkg_contents is "informational" only
-    sql =
-        "SELECT * FROM $TILE_MATRIX_SET a, $SPATIAL_REF_SYS b WHERE lower(a.table_name) = lower(?) AND a.srs_id = b.srs_id LIMIT 1";
-    res = await _sqliteDb.query(sql, [e.getTableName()]);
+    sql = """
+        SELECT * FROM $TILE_MATRIX_SET a, $SPATIAL_REF_SYS b 
+        WHERE lower(a.table_name) = lower(?) AND a.srs_id = b.srs_id LIMIT 1
+        """;
+    res = _sqliteDb.select(sql, [e.getTableName()]);
     if (res.isNotEmpty) {
       var map = res.first;
       var srid = (map["organization_coordsys_id"] as num).toInt();
@@ -280,18 +287,20 @@ class GeopackageDb {
   ///
   /// @param name THe name of the tile entry.
   /// @return The entry, or <code>null</code> if no such entry exists.
-  Future<TileEntry> tile(String name) async {
-    if (!await _sqliteDb.hasTable(GEOMETRY_COLUMNS)) {
+  TileEntry tile(String name) {
+    if (!_sqliteDb.hasTable(GEOMETRY_COLUMNS)) {
       return null;
     }
     String compat =
         forceRasterMobileCompatibility ? "and c.srs_id=$MERCATOR_SRID" : "";
-    String sql = "SELECT a.*, c.organization_coordsys_id, c.definition" +
-        " FROM $GEOPACKAGE_CONTENTS a, $SPATIAL_REF_SYS c" +
-        " WHERE a.srs_id = c.srs_id $compat AND Lower(a.table_name) = Lower(?)" +
-        " AND a.data_type = ?";
+    String sql = """
+      SELECT a.*, c.organization_coordsys_id, c.definition
+      FROM $GEOPACKAGE_CONTENTS a, $SPATIAL_REF_SYS c
+      WHERE a.srs_id = c.srs_id $compat AND Lower(a.table_name) = Lower(?)
+      AND a.data_type = ?
+      """;
 
-    var res = await _sqliteDb.query(sql, [name, DataType.Tile.value]);
+    var res = _sqliteDb.select(sql, [name, DataType.Tile.value]);
     if (res.isNotEmpty) {
       return createTileEntry(res.first);
     }
@@ -304,12 +313,12 @@ class GeopackageDb {
   /// @param entry The feature entry.
   /// @return whether this feature entry has a spatial index available.
   /// @throws IOException
-  Future<bool> hasSpatialIndex(String table) async {
-    FeatureEntry featureEntry = await feature(table);
+  bool hasSpatialIndex(String table) {
+    FeatureEntry featureEntry = feature(table);
 
     String sql =
         "SELECT name FROM sqlite_master WHERE type='table' AND name=? ";
-    var res = await _sqliteDb.query(sql, [getSpatialIndexName(featureEntry)]);
+    var res = _sqliteDb.select(sql, [getSpatialIndexName(featureEntry)]);
     return res.isNotEmpty;
   }
 
@@ -317,7 +326,7 @@ class GeopackageDb {
     return "rtree_" + feature.tableName + "_" + feature.geometryColumn;
   }
 
-  FeatureEntry createFeatureEntry(Map<String, dynamic> rs) {
+  FeatureEntry createFeatureEntry(Row rs) {
     FeatureEntry e = new FeatureEntry();
     e.setIdentifier(rs["identifier"]);
     e.setDescription(rs["description"]);
@@ -391,10 +400,7 @@ class GeopackageDb {
     }
   }
 
-  /**
-   * Adds a crs to the geopackage, registering it in the spatial_ref_sys table.
-   * @
-   */
+  /// Adds a crs to the geopackage, registering it in the spatial_ref_sys table.
   void addCRSSimple(String auth, int srid, String wkt) {
     addCRS(srid, auth + ":$srid", auth, srid, wkt, auth + ":$srid");
   }
@@ -407,7 +413,7 @@ class GeopackageDb {
     String sql =
         "INSERT INTO $SPATIAL_REF_SYS (srs_id, srs_name, organization, organization_coordsys_id, definition, description) VALUES (?,?,?,?,?,?)";
 
-    int inserted = await _sqliteDb.insert(sql, [
+    int inserted = _sqliteDb.insertPrepared(sql, [
       srid,
       srsName,
       organization,
@@ -421,29 +427,29 @@ class GeopackageDb {
     }
   }
 
-  Future<bool> hasCrs(int srid) async {
+  bool hasCrs(int srid) {
     String sqlPrep = "SELECT srs_id FROM $SPATIAL_REF_SYS WHERE srs_id = ?";
-    List<Map<String, dynamic>> res = await _sqliteDb.query(sqlPrep, [srid]);
+    var res = _sqliteDb.select(sqlPrep, [srid]);
     return res.length > 0;
   }
 
-  Future<void> close() async {
-    await _sqliteDb?.close();
+  void close() {
+    _sqliteDb?.close();
   }
 
-  Future<Map<String, List<String>>> getTablesMap(bool doOrder) async {
-    List<String> tableNames = await getTables(doOrder);
+  Map<String, List<String>> getTablesMap(bool doOrder) {
+    List<String> tableNames = getTables(doOrder);
     var tablesMap = GeopackageTableNames.getTablesSorted(tableNames, doOrder);
     return tablesMap;
   }
 
-  void createSpatialTable(
+  Future<void> createSpatialTable(
       String tableName,
       int tableSrid,
       String geometryFieldData,
       List<String> fieldData,
       List<String> foreignKeys,
-      bool avoidIndex) {
+      bool avoidIndex) async {
     StringBuffer sb = new StringBuffer();
     sb.write("CREATE TABLE ");
     sb.write(tableName);
@@ -469,7 +475,7 @@ class GeopackageDb {
     addGeometryColumnsEntry(tableName, g[0], g[1], tableSrid, false, false);
 
     if (!avoidIndex) {
-      createSpatialIndex(tableName, g[0]);
+      await createSpatialIndex(tableName, g[0]);
     }
   }
 
@@ -478,248 +484,13 @@ class GeopackageDb {
     throw new RuntimeException("Not implemented yet...");
   }
 
-//  Future<QueryResult> getTableRecordsMapIn(String tableName, Envelope envelope, int limit, int reprojectSrid, String whereStr) async {
-//    QueryResult queryResult = new QueryResult();
-//    GeometryColumn gCol = null;
-//    String geomColLower = null;
-//    try {
-//      gCol = await getGeometryColumnsForTable(tableName);
-//      if (gCol != null)
-//        geomColLower = gCol.geometryColumnName.toLowerCase();
-//    }
-//    catch
-//    (e) {
-//// ignore
-//    }
-//
-//    List<List<String>> tableColumnsInfo = await getTableColumns(tableName);
-//    int columnCount = tableColumnsInfo.length;
-//
-//    int index = 0;
-//    List<String> items = [];
-//    List<ResultSetToObjectFunction> funct = new ArrayList<>();
-//    for (List < String > columnInfo : tableColumnsInfo) {
-//      String columnName = columnInfo[0];
-//      if (DbsUtilities.isReservedName(columnName)) {
-//        columnName = DbsUtilities.fixReservedNameForQuery(columnName);
-//      }
-//
-//      String columnTypeName = columnInfo[1];
-//
-//      queryResult.names.add(columnName);
-//      queryResult.types.add(columnTypeName);
-//
-//      String isPk = columnInfo[2];
-//      if (isPk.equals("1")) {
-//        queryResult.pkIndex = index;
-//      }
-//      if (geomColLower != null && columnName.toLowerCase().equals(geomColLower)) {
-//        queryResult.geometryIndex = index;
-//
-//        if (reprojectSrid == -1 || reprojectSrid == gCol.srid) {
-//          items.add(geomColLower);
-//        } else {
-//          items.add("ST_Transform(" + geomColLower + "," + reprojectSrid + ") AS " + geomColLower);
-//        }
-//      } else {
-//        items.add(columnName);
-//      }
-//      index++;
-//
-//      EDataType type = EDataType.getType4Name(columnTypeName);
-//      switch (type) {
-//        case TEXT:
-//          {
-//            funct.add(new ResultSetToObjectFunction(){
-//
-//            Object getObject( IHMResultSet resultSet, int index ) {
-//            try {
-//            return resultSet.getString(index);
-//            } catch (Exception e) {
-//            e.printStackTrace();
-//            return null;
-//            }
-//            }
-//            });
-//            break;
-//          }
-//        case INTEGER:
-//          {
-//            funct.add(new ResultSetToObjectFunction(){
-//
-//            Object getObject( IHMResultSet resultSet, int index ) {
-//            try {
-//            return resultSet.getInt(index);
-//            } catch (Exception e) {
-//            e.printStackTrace();
-//            return null;
-//            }
-//            }
-//            });
-//            break;
-//          }
-//        case BOOLEAN:
-//          {
-//            funct.add(new ResultSetToObjectFunction(){
-//
-//            Object getObject( IHMResultSet resultSet, int index ) {
-//            try {
-//            return resultSet.getInt(index);
-//            } catch (Exception e) {
-//            e.printStackTrace();
-//            return null;
-//            }
-//            }
-//            });
-//            break;
-//          }
-//        case FLOAT:
-//          {
-//            funct.add(new ResultSetToObjectFunction(){
-//
-//            Object getObject( IHMResultSet resultSet, int index ) {
-//            try {
-//            return resultSet.getFloat(index);
-//            } catch (Exception e) {
-//            e.printStackTrace();
-//            return null;
-//            }
-//            }
-//            });
-//            break;
-//          }
-//        case DOUBLE:
-//          {
-//            funct.add(new ResultSetToObjectFunction(){
-//
-//            Object getObject( IHMResultSet resultSet, int index ) {
-//            try {
-//            return resultSet.getDouble(index);
-//            } catch (Exception e) {
-//            e.printStackTrace();
-//            return null;
-//            }
-//            }
-//            });
-//            break;
-//          }
-//        case LONG:
-//          {
-//            funct.add(new ResultSetToObjectFunction(){
-//
-//            Object getObject( IHMResultSet resultSet, int index ) {
-//            try {
-//            return resultSet.getLong(index);
-//            } catch (Exception e) {
-//            e.printStackTrace();
-//            return null;
-//            }
-//            }
-//            });
-//            break;
-//          }
-//        case BLOB:
-//          {
-//            funct.add(new ResultSetToObjectFunction(){
-//
-//            Object getObject( IHMResultSet resultSet, int index ) {
-//            try {
-//            return resultSet.getBytes(index);
-//            } catch (Exception e) {
-//            e.printStackTrace();
-//            return null;
-//            }
-//            }
-//            });
-//            break;
-//          }
-//        case DATETIME:
-//        case DATE:
-//          {
-//            funct.add(new ResultSetToObjectFunction(){
-//
-//            Object getObject( IHMResultSet resultSet, int index ) {
-//            try {
-//            String date = resultSet.getString(index);
-//            return date;
-//            } catch (Exception e) {
-//            e.printStackTrace();
-//            return null;
-//            }
-//            }
-//            });
-//            break;
-//          }
-//        default:
-//          funct.add(null);
-//          break;
-//      }
-//    }
-//
-//    String sql = "SELECT ";
-//    sql += DbsUtilities.joinByComma(items);
-//    sql += " FROM " + tableName;
-//
-//    List<String> whereStrings = new ArrayList<>();
-//    if (envelope != null) {
-//      double x1 = envelope.getMinX();
-//      double y1 = envelope.getMinY();
-//      double x2 = envelope.getMaxX();
-//      double y2 = envelope.getMaxY();
-//      String spatialindexBBoxWherePiece = getSpatialindexBBoxWherePiece(tableName, null, x1, y1, x2, y2);
-//      if (spatialindexBBoxWherePiece != null)
-//        whereStrings.add(spatialindexBBoxWherePiece);
-//    }
-//    if (whereStr != null) {
-//      whereStrings.add(whereStr);
-//    }
-//    if (whereStrings.size() > 0) {
-//      sql += " WHERE "; //
-//      sql += DbsUtilities.joinBySeparator(whereStrings, " AND ");
-//    }
-//
-//    if (limit > 0) {
-//      sql += " LIMIT " + limit;
-//    }
-//
-//    IGeometryParser gp = getType().getGeometryParser();
-//    String _sql = sql;
-//    return execOnConnection(connection -> {
-//    long start = System.currentTimeMillis();
-//    try (IHMStatement stmt = connection.createStatement(); IHMResultSet rs = stmt.executeQuery(_sql)) {
-//    while( rs.next() ) {
-//    Object[] rec = new Object[columnCount];
-//    for( int j = 1; j <= columnCount; j++ ) {
-//    if (queryResult.geometryIndex == j - 1) {
-//    Geometry geometry = gp.fromResultSet(rs, j);
-//    if (geometry != null) {
-//    rec[j - 1] = geometry;
-//    }
-//    } else {
-//    ResultSetToObjectFunction function = funct.get(j - 1);
-//    Object object = function.getObject(rs, j);
-//    if (object instanceof Clob) {
-//    object = rs.getString(j);
-//    }
-//    rec[j - 1] = object;
-//    }
-//    }
-//    queryResult.data.add(rec);
-//    }
-//    long end = System.currentTimeMillis();
-//    queryResult.queryTimeMillis = end - start;
-//    return queryResult;
-//    }
-//    });
-//  }
-
-  Future<String> getSpatialindexBBoxWherePiece(String tableName, String alias,
-      double x1, double y1, double x2, double y2) async {
+  String getSpatialindexBBoxWherePiece(String tableName, String alias,
+      double x1, double y1, double x2, double y2) {
     if (!_supportsRtree) return null;
-    FeatureEntry featureItem = await feature(tableName);
+    FeatureEntry featureItem = feature(tableName);
     String spatial_index = getSpatialIndexName(featureItem);
 
-    String pk = await getPrimaryKey(tableName);
+    String pk = _sqliteDb.getPrimaryKey(tableName);
     if (pk == null) {
 // can't use spatial index
       return null;
@@ -737,16 +508,16 @@ class GeopackageDb {
     return sql;
   }
 
-  Future<String> getSpatialindexGeometryWherePiece(
-      String tableName, String alias, Geometry geometry) async {
+  String getSpatialindexGeometryWherePiece(
+      String tableName, String alias, Geometry geometry) {
 // this is not possible in gpkg, backing on envelope intersection
     Envelope env = geometry.getEnvelopeInternal();
-    return await getSpatialindexBBoxWherePiece(tableName, alias, env.getMinX(),
+    return getSpatialindexBBoxWherePiece(tableName, alias, env.getMinX(),
         env.getMinY(), env.getMaxX(), env.getMaxY());
   }
 
-  Future<GeometryColumn> getGeometryColumnsForTable(String tableName) async {
-    FeatureEntry featureEntry = await feature(tableName);
+  GeometryColumn getGeometryColumnsForTable(String tableName) {
+    FeatureEntry featureEntry = feature(tableName);
     if (featureEntry == null) return null;
     GeometryColumn gc = new GeometryColumn();
     gc.tableName = tableName;
@@ -757,7 +528,7 @@ class GeopackageDb {
     if (featureEntry.m) dim++;
     gc.coordinatesDimension = dim;
     gc.srid = featureEntry.srid;
-    gc.isSpatialIndexEnabled = await hasSpatialIndex(tableName) ? 1 : 0;
+    gc.isSpatialIndexEnabled = hasSpatialIndex(tableName) ? 1 : 0;
     return gc;
   }
 
@@ -775,8 +546,8 @@ class GeopackageDb {
   /// @param limit an optional limit to apply.
   /// @return The list of geometries intersecting the envelope.
   /// @throws Exception
-  Future<List<Geometry>> getGeometriesIn(String tableName,
-      {Envelope envelope, List<String> prePostWhere, int limit = -1}) async {
+  List<Geometry> getGeometriesIn(String tableName,
+      {Envelope envelope, List<String> prePostWhere, int limit = -1}) {
     List<String> wheres = [];
     String pre = "";
     String post = "";
@@ -790,8 +561,8 @@ class GeopackageDb {
       }
     }
 
-    String pk = await getPrimaryKey(tableName);
-    GeometryColumn gCol = await getGeometryColumnsForTable(tableName);
+    String pk = _sqliteDb.getPrimaryKey(tableName);
+    GeometryColumn gCol = getGeometryColumnsForTable(tableName);
     String sql = "SELECT " +
         pre +
         gCol.geometryColumnName +
@@ -805,7 +576,7 @@ class GeopackageDb {
       double x2 = envelope.getMaxX();
       double y2 = envelope.getMaxY();
       String spatialindexBBoxWherePiece =
-          await getSpatialindexBBoxWherePiece(tableName, null, x1, y1, x2, y2);
+          getSpatialindexBBoxWherePiece(tableName, null, x1, y1, x2, y2);
       if (spatialindexBBoxWherePiece != null)
         wheres.add(spatialindexBBoxWherePiece);
     }
@@ -819,7 +590,7 @@ class GeopackageDb {
     }
 
     List<Geometry> geoms = [];
-    var res = await _sqliteDb.query(sql);
+    var res = _sqliteDb.select(sql);
     res.forEach((map) {
       var geomBytes = map["the_geom"];
       if (geomBytes != null) {
@@ -838,131 +609,52 @@ class GeopackageDb {
     return geoms;
   }
 
-  /// Get the geometries of a table intersecting a given geometry.
+  /// Get the geometries of a [tableName] intersecting a given [geometry].
   ///
-  /// @param tableName
-  ///            the table name.
-  /// @param envelope
-  ///            the envelope to check.
-  /// @param prePostWhere an optional set of 3 parameters. The parameters are: a
-  ///          prefix wrapper for geom, a postfix for the same and a where string
-  ///          to apply. They all need to be existing if the parameter is passed.
-  /// @return The list of geometries intersecting the envelope.
-  /// @throws Exception
-  Future<List<Geometry>> getGeometriesIntersecting(String tableName,
-      {Geometry geometry, List<String> prePostWhere, int limit = -1}) async {
-    List<String> wheres = [];
-    String pre = "";
-    String post = "";
-    String where = "";
-    if (prePostWhere != null && prePostWhere.length == 3) {
-      if (prePostWhere[0] != null) pre = prePostWhere[0];
-      if (prePostWhere[1] != null) post = prePostWhere[1];
-      if (prePostWhere[2] != null) {
-        where = prePostWhere[2];
-        wheres.add(where);
-      }
+  /// Note that sqlite geopackage only supports RTree index, therefore
+  /// the exact intersection is done after the [getGeometriesIn] call
+  /// on the resulting geometries. This is NOT done on the db side.
+  ///
+  /// @return The list of geometries intersecting the geometry.
+  List<Geometry> getGeometriesIntersecting(String tableName,
+      {Geometry geometry, List<String> prePostWhere, int limit = -1}) {
+    if (geometry == null) {
+      return getGeometriesIn(tableName,
+          prePostWhere: prePostWhere, limit: limit);
+    } else {
+      var geometriesList = getGeometriesIn(
+        tableName,
+        envelope: geometry.getEnvelopeInternal(),
+        prePostWhere: prePostWhere,
+        limit: limit,
+      );
+      geometriesList.removeWhere((geom) => !geom.intersects(geometry));
+      return geometriesList;
     }
-
-    GeometryColumn gCol = await getGeometryColumnsForTable(tableName);
-    String sql = "SELECT " +
-        pre +
-        gCol.geometryColumnName +
-        post +
-        " as the_geom FROM " +
-        DbsUtilities.fixTableName(tableName);
-
-    if (supportsSpatialIndex && geometry != null) {
-      var envelope = geometry.getEnvelopeInternal();
-      double x1 = envelope.getMinX();
-      double y1 = envelope.getMinY();
-      double x2 = envelope.getMaxX();
-      double y2 = envelope.getMaxY();
-      String spatialindexBBoxWherePiece =
-          await getSpatialindexBBoxWherePiece(tableName, null, x1, y1, x2, y2);
-      if (spatialindexBBoxWherePiece != null)
-        wheres.add(spatialindexBBoxWherePiece);
-    }
-
-    if (wheres.length > 0) {
-      sql += " WHERE " + wheres.join(" AND ");
-    }
-
-    if (limit > 0) {
-      sql += " limit $limit";
-    }
-
-    List<Geometry> geoms = [];
-    var res = await _sqliteDb.query(sql);
-    res.forEach((map) {
-      var geomBytes = map["the_geom"];
-      if (geomBytes != null) {
-        var geom = GeoPkgGeomReader(geomBytes).get();
-        if (_supportsRtree || geometry == null) {
-          geoms.add(geom);
-        } else if (geometry != null &&
-            geom
-                .getEnvelopeInternal()
-                .intersectsEnvelope(geometry.getEnvelopeInternal()) &&
-            geom.intersects(geometry)) {
-          // if no spatial index is available, filter the geoms manually
-          geoms.add(geom);
-        }
-      }
-    });
-    return geoms;
   }
 
-  Future<List<String>> getTables(bool doOrder) async {
+  List<String> getTables(bool doOrder) {
     return _sqliteDb.getTables(doOrder);
   }
 
-  Future<bool> hasTable(String tableName) async {
-    return await _sqliteDb.hasTable(tableName);
+  bool hasTable(String tableName) {
+    return _sqliteDb.hasTable(tableName);
   }
 
-  /// Get the table columns from a non spatial db.
-  ///
-  /// @param tableName the name of the table to get the columns for.
-  /// @return the list of table column information. See {@link ADb#getTableColumns(String)}
-  Future<List<List<String>>> getTableColumns(String tableName) async {
-    List<List<String>> columnsInfo = [];
-
-    String sql = "PRAGMA table_info(" + tableName + ")";
-    var res = await _sqliteDb.query(sql);
-    res.forEach((map) {
-      var name = map["name"];
-      var type = map["type"];
-      var pk = map["pk"];
-
-      columnsInfo.add([name, type, pk]);
-    });
-    return columnsInfo;
+  List<List<String>> getTableColumns(String tableName) {
+    return _sqliteDb.getTableColumns(tableName);
   }
 
-  /// Get the primary key from a non spatial db.
-  Future<String> getPrimaryKey(String tableName) async {
-    String sql = "PRAGMA table_info(" + tableName + ")";
-    var res = await _sqliteDb.query(sql);
-    for (Map map in res) {
-      var pk = map["pk"];
-      if (pk == 1) {
-        return map["name"];
-      }
-    }
-    return null;
+  Future<void> addGeometryXYColumnAndIndex(String tableName, String geomColName,
+      String geomType, String epsg) async {
+    await createSpatialIndex(tableName, geomColName);
   }
 
-  void addGeometryXYColumnAndIndex(
-      String tableName, String geomColName, String geomType, String epsg) {
-    createSpatialIndex(tableName, geomColName);
-  }
-
-  Future<QueryResult> getTableData(String tableName,
-      {Envelope envelope, Geometry geometry, int limit}) async {
+  QueryResult getTableData(String tableName,
+      {Envelope envelope, Geometry geometry, int limit}) {
     QueryResult queryResult = new QueryResult();
 
-    GeometryColumn geometryColumn = await getGeometryColumnsForTable(tableName);
+    GeometryColumn geometryColumn = getGeometryColumnsForTable(tableName);
     queryResult.geomName = geometryColumn.geometryColumnName;
 
     String sql = "select * from " + tableName;
@@ -977,14 +669,14 @@ class GeopackageDb {
       double x2 = envelope.getMaxX();
       double y2 = envelope.getMaxY();
       String spatialindexBBoxWherePiece =
-          await getSpatialindexBBoxWherePiece(tableName, null, x1, y1, x2, y2);
+          getSpatialindexBBoxWherePiece(tableName, null, x1, y1, x2, y2);
       if (spatialindexBBoxWherePiece != null) {
         sql += " WHERE " + spatialindexBBoxWherePiece;
       }
     }
     if (geometry != null) {
       String spatialindexBBoxWherePiece =
-          await getSpatialindexGeometryWherePiece(tableName, null, geometry);
+          getSpatialindexGeometryWherePiece(tableName, null, geometry);
       if (spatialindexBBoxWherePiece != null) {
         sql += " WHERE " + spatialindexBBoxWherePiece;
       }
@@ -994,7 +686,7 @@ class GeopackageDb {
     if (limit != null) {
       sql += "limit $limit";
     }
-    List<Map<String, dynamic>> result = await _sqliteDb.query(sql);
+    var result = _sqliteDb.select(sql);
     result.forEach((map) {
       Map<String, dynamic> newMap = {};
       bool doAdd = true;
@@ -1035,108 +727,29 @@ class GeopackageDb {
     return queryResult;
   }
 
-  /**
-   * Execute a query from raw sql and put the result in a csv file.
-   *
-   * @param sql
-   *            the sql to run.
-   * @param csvFile
-   *            the output file.
-   * @param doHeader
-   *            if <code>true</code>, the header is written.
-   * @param separator
-   *            the separator (if null, ";" is used).
-   * @
-   */
-//  void runRawSqlToCsv(String sql, File csvFile, bool doHeader, String separator) {
-//    try
-//    (BufferedWriter bw = new BufferedWriter(new FileWriter(csvFile))) {
-//    SpatialiteWKBReader wkbReader = new SpatialiteWKBReader();
-//    try (IHMStatement stmt = sqliteDb.getConnectionInternal().createStatement();
-//    IHMResultSet rs = stmt.executeQuery(sql)) {
-//    IHMResultSetMetaData rsmd = rs.getMetaData();
-//    int columnCount = rsmd.getColumnCount();
-//    int geometryIndex = -1;
-//    for( int i = 1; i <= columnCount; i++ ) {
-//    if (i > 1) {
-//    bw.write(separator);
-//    }
-//    String columnTypeName = rsmd.getColumnTypeName(i);
-//    String columnName = rsmd.getColumnName(i);
-//    bw.write(columnName);
-//    if (ESpatialiteGeometryType.isGeometryName(columnTypeName)) {
-//    geometryIndex = i;
-//    }
-//    }
-//    bw.write("\n");
-//    while( rs.next() ) {
-//    for( int j = 1; j <= columnCount; j++ ) {
-//    if (j > 1) {
-//    bw.write(separator);
-//    }
-//    byte[] geomBytes = null;
-//    if (j == geometryIndex) {
-//    geomBytes = rs.getBytes(j);
-//    }
-//    if (geomBytes != null) {
-//    try {
-//    Geometry geometry = wkbReader.read(geomBytes);
-//    bw.write(geometry.toText());
-//    } catch (Exception e) {
-//// write it as it comes
-//    Object object = rs.getObject(j);
-//    if (object instanceof Clob) {
-//    object = rs.getString(j);
-//    }
-//    if (object != null) {
-//    bw.write(object.toString());
-//    } else {
-//    bw.write("");
-//    }
-//    }
-//    } else {
-//    Object object = rs.getObject(j);
-//    if (object instanceof Clob) {
-//    object = rs.getString(j);
-//    }
-//    if (object != null) {
-//    bw.write(object.toString());
-//    } else {
-//    bw.write("");
-//    }
-//    }
-//    }
-//    bw.write("\n");
-//    }
-//    }
-//    }
-//  }
-
   /// Create a spatial index
   ///
   /// @param e feature entry to create spatial index for
   Future<void> createSpatialIndex(String tableName, String geometryName) async {
-    if (RTREE_CREATION_SUPPORTED) {
-      String pk = await getPrimaryKey(tableName);
-      if (pk == null) {
-        throw new IOException(
-            "Spatial index only supported for primary key of single column.");
-      }
-
-      String sqlString =
-          await rootBundle.loadString("assets/" + SPATIAL_INDEX + ".sql");
-
-      sqlString = sqlString.replaceAll("\$\{t\}", tableName);
-      sqlString = sqlString.replaceAll("\$\{c\}", geometryName);
-      sqlString = sqlString.replaceAll("\$\{i\}", pk);
-
-      await _sqliteDb.execute(sqlString);
+    String pk = _sqliteDb.getPrimaryKey(tableName);
+    if (pk == null) {
+      throw new IOException(
+          "Spatial index only supported for primary key of single column.");
     }
+
+    String sqlString =
+        await rootBundle.loadString("assets/" + SPATIAL_INDEX + ".sql");
+
+    sqlString = sqlString.replaceAll("\$\{t\}", tableName);
+    sqlString = sqlString.replaceAll("\$\{c\}", geometryName);
+    sqlString = sqlString.replaceAll("\$\{i\}", pk);
+
+    _sqliteDb.execute(sqlString);
   }
 
-  Future<void> addGeoPackageContentsEntry(String tableName, int srid,
-      String description, Envelope crsBounds) async {
-    if (!await hasCrs(srid))
+  void addGeoPackageContentsEntry(
+      String tableName, int srid, String description, Envelope crsBounds) {
+    if (!hasCrs(srid))
       throw new IOException(
           "The srid is not yet present in the package. Please add it before proceeding.");
 
@@ -1176,7 +789,7 @@ class GeopackageDb {
       maxy = crsBounds.getMaxY();
     }
 
-    _sqliteDb.insert(sb.toString(), [
+    _sqliteDb.insertPrepared(sb.toString(), [
       tableName,
       DataType.Feature.value,
       tableName,
@@ -1208,12 +821,12 @@ class GeopackageDb {
 //        }
 //    }
 //
-  Future<void> addGeometryColumnsEntry(String tableName, String geometryName,
-      String geometryType, int srid, bool hasZ, bool hasM) async {
+  void addGeometryColumnsEntry(String tableName, String geometryName,
+      String geometryType, int srid, bool hasZ, bool hasM) {
 // geometryless tables should not be inserted into this table.
     String sql = "INSERT INTO $GEOMETRY_COLUMNS VALUES (?, ?, ?, ?, ?, ?);";
 
-    _sqliteDb.insert(sql, [
+    _sqliteDb.insertPrepared(sql, [
       tableName,
       geometryName,
       geometryType,
@@ -1223,25 +836,25 @@ class GeopackageDb {
     ]);
   }
 
-  Future<BasicStyle> getBasicStyle(String tableName) async {
-    await checkStyleTable();
+  BasicStyle getBasicStyle(String tableName) {
+    checkStyleTable();
     String sql = "select simplified from " +
         HM_STYLES_TABLE +
         " where lower(tablename)='" +
         tableName.toLowerCase() +
         "'";
-    var res = await _sqliteDb.query(sql);
+    var res = _sqliteDb.select(sql);
     BasicStyle style = BasicStyle();
     if (res.length == 1) {
-      Map<String, dynamic> map = res[0];
-      String jsonStyle = map['simplified'];
+      Row row = res.first;
+      String jsonStyle = row['simplified'];
       style.setFromJson(jsonStyle);
     }
     return style;
   }
 
-  Future<void> checkStyleTable() async {
-    if (!await _sqliteDb.hasTable(HM_STYLES_TABLE)) {
+  void checkStyleTable() {
+    if (!_sqliteDb.hasTable(HM_STYLES_TABLE)) {
       var createTablesQuery = '''
       CREATE TABLE $HM_STYLES_TABLE (  
         tablename TEXT NOT NULL,
@@ -1250,15 +863,13 @@ class GeopackageDb {
       );
       CREATE INDEX ${HM_STYLES_TABLE}_tablename_idx ON $HM_STYLES_TABLE (tablename);
     ''';
-      await _sqliteDb.transaction((tx) async {
-        var split = createTablesQuery.replaceAll("\n", "").trim().split(";");
-        for (int i = 0; i < split.length; i++) {
-          var sql = split[i].trim();
-          if (sql.length > 0 && !sql.startsWith("--")) {
-            await tx.execute(sql);
-          }
+      var split = createTablesQuery.replaceAll("\n", "").trim().split(";");
+      for (int i = 0; i < split.length; i++) {
+        var sql = split[i].trim();
+        if (sql.length > 0 && !sql.startsWith("--")) {
+          _sqliteDb.execute(sql);
         }
-      });
+      }
     }
   }
 
@@ -1269,7 +880,7 @@ class GeopackageDb {
   /// @param ty the y tile index, the osm way.
   /// @param zoom the zoom level.
   /// @return the tile image bytes.
-  Future<List<int>> getTile(String tableName, int tx, int ty, int zoom) async {
+  List<int> getTile(String tableName, int tx, int ty, int zoom) {
 //     if (tileRowType.equals("tms")) { // if it is not OSM way
     var tmsTileXY = osmTile2TmsTile(tx, ty, zoom);
     ty = tmsTileXY[1];
@@ -1277,7 +888,7 @@ class GeopackageDb {
     String sql = SELECTQUERY_PRE +
         DbsUtilities.fixTableName(tableName) +
         SELECTQUERY_POST;
-    var res = await _sqliteDb.query(sql, [zoom, tx, ty]);
+    var res = _sqliteDb.select(sql, [zoom, tx, ty]);
     if (res.isNotEmpty) {
       return res.first[COL_TILES_TILE_DATA];
     }
@@ -1299,7 +910,7 @@ class GeopackageDb {
   /// @param tableName the name of the table.
   /// @return the list of zoom levels.
   /// @throws Exception
-  Future<List<int>> getTileZoomLevelsWithData(String tableName) async {
+  List<int> getTileZoomLevelsWithData(String tableName) {
     String sql = "select distinct " +
         COL_TILES_ZOOM_LEVEL +
         " from " +
@@ -1308,7 +919,7 @@ class GeopackageDb {
         COL_TILES_ZOOM_LEVEL;
 
     List<int> list = [];
-    var res = await _sqliteDb.query(sql);
+    var res = _sqliteDb.select(sql);
     res.forEach((map) {
       var zoomLevel = (map[COL_TILES_ZOOM_LEVEL] as num).toInt();
       list.add(zoomLevel);
@@ -1316,216 +927,61 @@ class GeopackageDb {
     return list;
   }
 
-  Future<int> updateMap(
-      String table, Map<String, dynamic> values, String where) async {
-    return _sqliteDb.updateMap(table, values, where);
-  }
-
   Future<int> update(String updateSql) async {
     return _sqliteDb.update(updateSql);
   }
 
-//
-//    void deleteGeometryColumnsEntry( FeatureEntry e ) throws IOException {
-//        String sql = format("DELETE FROM %s WHERE table_name = ?", GEOMETRY_COLUMNS);
-//        try {
-//            Connection cx = connPool.getConnection();
-//            try {
-//                PreparedStatement ps = prepare(cx, sql).set(e.getTableName()).log(Level.FINE).statement();
-//                try {
-//                    ps.execute();
-//                } finally {
-//                    close(ps);
-//                }
-//            } finally {
-//                close(cx);
-//            }
-//        } catch (SQLException ex) {
-//            throw new IOException(ex);
-//        }
-//    }
-//
-//    /**
-//     * Create a spatial index
-//     *
-//     * @param e feature entry to create spatial index for
-//     */
-//     void createSpatialIndex( FeatureEntry e ) throws IOException {
-//        Map<String, String> properties = new HashMap<String, String>();
-//
-//        PrimaryKey pk = ((JDBCFeatureStore) (dataStore.getFeatureSource(e.getTableName()))).getPrimaryKey();
-//        if (pk.getColumns().size() != 1) {
-//            throw new IOException("Spatial index only supported for primary key of single column.");
-//        }
-//
-//        properties.put("t", e.getTableName());
-//        properties.put("c", e.getGeometryColumn());
-//        properties.put("i", pk.getColumns().get(0).getName());
-//
-//        Connection cx;
-//        try {
-//            cx = connPool.getConnection();
-//            try {
-//                runScript(SPATIAL_INDEX + ".sql", cx, properties);
-//            } finally {
-//                cx.close();
-//            }
-//
-//        } catch (SQLException ex) {
-//            throw new IOException(ex);
-//        }
-//    }
+  void createFunctions() {
+    var moorDb = _sqliteDb.getInternalDb();
 
-//  static void createFunctions(Connection cx)
-//
-//  throws SQLException
-//
-//  {
-//
-//// minx
-//  Function.create
-//
-//  (
-//
-//  cx
-//
-//  ,
-//
-//  "
-//
-//  ST_MinX
-//
-//  "
-//
-//  ,
-//
-//  new
-//
-//  GeometryFunction() {
-//    Object execute(GeoPkgGeomReader reader)
-//    throws IOException {
-//      return reader.getEnvelope().getMinX();
-//    }
-//  }
-//
-//  );
-//
-//// maxx
-//  Function.create
-//
-//  (
-//
-//  cx
-//
-//  ,
-//
-//  "
-//
-//  ST_MaxX
-//
-//  "
-//
-//  ,
-//
-//  new
-//
-//  GeometryFunction() {
-//    Object execute(GeoPkgGeomReader reader)
-//    throws IOException {
-//      return reader.getEnvelope().getMaxX();
-//    }
-//  }
-//
-//  );
-//
-//// miny
-//  Function.create
-//
-//  (
-//
-//  cx
-//
-//  ,
-//
-//  "
-//
-//  ST_MinY
-//
-//  "
-//
-//  ,
-//
-//  new
-//
-//  GeometryFunction() {
-//    Object execute(GeoPkgGeomReader reader)
-//    throws IOException {
-//      return reader.getEnvelope().getMinY();
-//    }
-//  }
-//
-//  );
-//
-//// maxy
-//  Function.create
-//
-//  (
-//
-//  cx
-//
-//  ,
-//
-//  "
-//
-//  ST_MaxY
-//
-//  "
-//
-//  ,
-//
-//  new
-//
-//  GeometryFunction() {
-//    Object execute(GeoPkgGeomReader reader)
-//    throws IOException {
-//      return reader.getEnvelope().getMaxY();
-//    }
-//  }
-//
-//  );
-//
-//// empty
-//  Function.create
-//
-//  (
-//
-//  cx
-//
-//  ,
-//
-//  "
-//
-//  ST_IsEmpty
-//
-//  "
-//
-//  ,
-//
-//  new
-//
-//  GeometryFunction() {
-//    Object execute(GeoPkgGeomReader reader)
-//    throws IOException {
-//      return reader.getHeader().getFlags().isEmpty();
-//    }
-//  }
-//
-//  );
-//}
+    moorDb.createFunction("ST_MinX", 1, Pointer.fromFunction(minXFunction),
+        isDeterministic: true);
+    moorDb.createFunction("ST_MaxX", 1, Pointer.fromFunction(maxXFunction),
+        isDeterministic: true);
+    moorDb.createFunction("ST_MinY", 1, Pointer.fromFunction(minYFunction),
+        isDeterministic: true);
+    moorDb.createFunction("ST_MaxY", 1, Pointer.fromFunction(maxYFunction),
+        isDeterministic: true);
+    moorDb.createFunction(
+        "ST_IsEmpty", 1, Pointer.fromFunction(isEmptyFunction),
+        isDeterministic: true);
+
+    // database.create_function("ST_MinX", 1, new GPGeometryFunction(){
+    //     @Override
+    //     public Object execute( GeoPkgGeomReader reader ) throws IOException {
+    //         return reader.getEnvelope().getMinX();
+    //     }
+    // });
+    // database.create_function("ST_MaxX", 1, new GPGeometryFunction(){
+    //     @Override
+    //     public Object execute( GeoPkgGeomReader reader ) throws IOException {
+    //         return reader.getEnvelope().getMaxX();
+    //     }
+    // });
+    // database.create_function("ST_MinY", 1, new GPGeometryFunction(){
+    //     @Override
+    //     public Object execute( GeoPkgGeomReader reader ) throws IOException {
+    //         return reader.getEnvelope().getMinY();
+    //     }
+    // });
+    // database.create_function("ST_MaxY", 1, new GPGeometryFunction(){
+    //     @Override
+    //     public Object execute( GeoPkgGeomReader reader ) throws IOException {
+    //         return reader.getEnvelope().getMaxY();
+    //     }
+    // });
+    //
+    // database.create_function("ST_IsEmpty", 1, new GPGeometryFunction(){
+    //     @Override
+    //     public Object execute( GeoPkgGeomReader reader ) throws IOException {
+    //         return reader.getHeader().getFlags().isEmpty();
+    //     }
+    // });
+  }
 }
 
 class ConnectionsHandler {
-  bool doRtreeCheck = false;
+  // bool doRtreeCheck = false;
   bool forceVectorMobileCompatibility = false;
   bool forceRasterMobileCompatibility = true;
 
@@ -1553,7 +1009,7 @@ class ConnectionsHandler {
     GeopackageDb db = _connectionsMap[path];
     if (db == null) {
       db = GeopackageDb(path);
-      db.doRtreeTestCheck = doRtreeCheck;
+      // db.doRtreeTestCheck = doRtreeCheck;
       db.forceVectorMobileCompatibility = forceVectorMobileCompatibility;
       db.forceRasterMobileCompatibility = forceRasterMobileCompatibility;
       await db.openOrCreate();
@@ -1572,7 +1028,7 @@ class ConnectionsHandler {
   }
 
   /// Close an existing db connection, if all tables bound to it were released.
-  Future<void> close(String path, {String tableName}) async {
+  void close(String path, {String tableName}) {
     var tableNamesList = _tableNamesMap[path];
     if (tableNamesList != null && tableNamesList.contains(tableName)) {
       tableNamesList.remove(tableName);
@@ -1581,15 +1037,15 @@ class ConnectionsHandler {
       // ok to close db and remove the connection
       _tableNamesMap.remove(path);
       GeopackageDb db = _connectionsMap.remove(path);
-      await db?.close();
+      db?.close();
     }
   }
 
-  Future<void> closeAll() async {
+  void closeAll() {
     _tableNamesMap.clear();
     Iterable<GeopackageDb> values = _connectionsMap.values;
     for (GeopackageDb c in values) {
-      await c.close();
+      c.close();
     }
   }
 

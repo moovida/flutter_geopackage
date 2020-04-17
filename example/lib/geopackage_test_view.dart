@@ -181,7 +181,7 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
     List<Widget> tiles = [];
 
     var ch = ConnectionsHandler();
-    ch.doRtreeCheck = false;
+    // ch.doRtreeCheck = false;
     ch.forceRasterMobileCompatibility = false;
 
     String tilesPath;
@@ -254,7 +254,7 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
     List<Widget> tiles = [];
 
     var ch = ConnectionsHandler();
-    ch.doRtreeCheck = false;
+    // ch.doRtreeCheck = false;
     ch.forceVectorMobileCompatibility = false;
 
     String vectorPath;
