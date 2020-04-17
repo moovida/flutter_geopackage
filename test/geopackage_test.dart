@@ -6,16 +6,21 @@ import "package:test/test.dart";
 
 void main() async {
   GeopackageDb vectorDb;
+  GeopackageDb rasterDb;
 
   setUp(() async {
-    File dbFile = File("./test/gdal_sample.gpkg");
     var ch = ConnectionsHandler();
-    vectorDb = await ch.open(dbFile.path);
+    File vectorDbFile = File("./test/gdal_sample.gpkg");
+    vectorDb = await ch.open(vectorDbFile.path);
     vectorDb.openOrCreate();
+    File rasterDbFile = File("./test/tiles_3857.gpkg");
+    rasterDb = await ch.open(rasterDbFile.path);
+    rasterDb.openOrCreate();
   });
 
   tearDown(() {
     vectorDb?.close();
+    rasterDb?.close();
   });
 
   group("Geopackage Vectors - ", () {
@@ -205,6 +210,51 @@ void main() async {
       expect(dateTimeField, "2014-06-23T23:23:00Z");
       expect(dateField, "2014-06-23");
       expect(binaryField.length, 3);
+    });
+  });
+  group("Geopackage Rasters - ", () {
+    test("testGeneralInfo", () {
+      expect(rasterDb.supportsSpatialIndex, true);
+      expect(rasterDb.version, "1.0/1.1");
+    });
+
+    test("testTables", () {
+      List<TileEntry> tilesList = rasterDb.tiles();
+      expect(tilesList.length, 1);
+    });
+
+    test("testTileSettings", () {
+      TileEntry entry = rasterDb.tile('tiles');
+      List<TileMatrix> tileMatricies = entry.getTileMatricies();
+      expect(tileMatricies.length, 5);
+      tileMatricies.forEach((tm) {
+        var zl = tm.zoomLevel;
+        var cols = tm.matrixWidth;
+        var rows = tm.matrixHeight;
+        var tw = tm.tileWidth;
+        var th = tm.tileHeight;
+        var xPixelSize = tm.xPixelSize;
+        var yPixelSize = tm.yPixelSize;
+        if (zl == 1) {
+          expect(cols, 2);
+          expect(rows, 2);
+          expect(tw, 256);
+          expect(th, 256);
+          expect(xPixelSize, 78271.51696402048);
+          expect(yPixelSize, 78271.51696402048);
+        } else if (zl == 5) {
+          expect(cols, 32);
+          expect(rows, 32);
+          expect(tw, 256);
+          expect(th, 256);
+          expect(xPixelSize, 4891.96981025128);
+          expect(yPixelSize, 4891.96981025128);
+        }
+      });
+    });
+    test("testGetTile", () {
+      List<int> tileBytes = rasterDb.getTile('tiles', 0, 0, 1);
+      expect(tileBytes.length, 3231);
     });
   });
 }

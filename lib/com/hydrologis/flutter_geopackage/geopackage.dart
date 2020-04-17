@@ -206,11 +206,11 @@ class GeopackageDb {
         forceRasterMobileCompatibility ? "and c.srs_id = $MERCATOR_SRID" : "";
     String sql = """
     SELECT a.*, c.organization_coordsys_id, c.definition
-    FROM $GEOPACKAGE_CONTENTS a, $SPATIAL_REF_SYS c
-    WHERE a.srs_id = c.srs_id $compat AND a.data_type = ?
+    FROM $TILE_MATRIX_SET a, $SPATIAL_REF_SYS c
+    WHERE a.srs_id = c.srs_id $compat
     """;
 
-    var res = _sqliteDb.select(sql, [DataType.Tile.value]);
+    var res = _sqliteDb.select(sql);
     List<TileEntry> contents = [];
     res.forEach((row) {
       var tileEntry = createTileEntry(row);
@@ -226,12 +226,14 @@ class GeopackageDb {
     e.setTableName(row["table_name"]);
     int srid = (row["srs_id"] as num).toInt();
     e.setSrid(srid);
-    e.setBounds(new Envelope(
+    var matrixSetEnvelope = new Envelope(
       (row["min_x"] as num).toDouble(),
       (row["max_x"] as num).toDouble(),
       (row["min_y"] as num).toDouble(),
       (row["max_y"] as num).toDouble(),
-    ));
+    );
+    e.setBounds(matrixSetEnvelope);
+    e.setTileMatrixSetBounds(matrixSetEnvelope);
 
     String sql = """
         SELECT *, exists(
@@ -261,25 +263,6 @@ class GeopackageDb {
       e.getTileMatricies().add(m);
     });
 
-    // use the tile matrix set bounds rather that gpkg_contents bounds
-    // per spec, the tile matrix set bounds should be exact and used to calculate tile
-    // coordinates and in contrast the gpkg_contents is "informational" only
-    sql = """
-        SELECT * FROM $TILE_MATRIX_SET a, $SPATIAL_REF_SYS b 
-        WHERE lower(a.table_name) = lower(?) AND a.srs_id = b.srs_id LIMIT 1
-        """;
-    res = _sqliteDb.select(sql, [e.getTableName()]);
-    if (res.isNotEmpty) {
-      var map = res.first;
-      var srid = (map["organization_coordsys_id"] as num).toInt();
-      e.setSrid(srid);
-      e.setTileMatrixSetBounds(Envelope(
-        (map["min_x"] as num).toDouble(),
-        (map["max_x"] as num).toDouble(),
-        (map["min_y"] as num).toDouble(),
-        (map["max_y"] as num).toDouble(),
-      ));
-    }
     return e;
   }
 
@@ -295,12 +278,11 @@ class GeopackageDb {
         forceRasterMobileCompatibility ? "and c.srs_id=$MERCATOR_SRID" : "";
     String sql = """
       SELECT a.*, c.organization_coordsys_id, c.definition
-      FROM $GEOPACKAGE_CONTENTS a, $SPATIAL_REF_SYS c
+      FROM $TILE_MATRIX_SET a, $SPATIAL_REF_SYS c
       WHERE a.srs_id = c.srs_id $compat AND Lower(a.table_name) = Lower(?)
-      AND a.data_type = ?
       """;
 
-    var res = _sqliteDb.select(sql, [name, DataType.Tile.value]);
+    var res = _sqliteDb.select(sql, [name]);
     if (res.isNotEmpty) {
       return createTileEntry(res.first);
     }
