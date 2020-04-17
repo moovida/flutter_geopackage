@@ -92,7 +92,8 @@ void main() async {
       bool hasSpatialIndex = vectorDb.hasSpatialIndex(geomcollection2DTable);
       expect(hasSpatialIndex, true);
 
-      List<Geometry> geometries = vectorDb.getGeometriesIn(geomcollection2DTable);
+      List<Geometry> geometries =
+          vectorDb.getGeometriesIn(geomcollection2DTable);
       geometries.removeWhere((g) => g == null);
       expect(geometries.length, 4);
 
@@ -121,6 +122,89 @@ void main() async {
       expect(geometries.length, 1);
       expect(geometries[0].toText(), "POINT (1 2)");
       expect(hasSpatialIndex, true);
+    });
+
+    test("testIsEmptyfunction", () {
+      String sql =
+          "select * from point2d where geom NOT NULL AND NOT ST_IsEmpty(geom)";
+      var result = vectorDb.select(sql);
+      expect(result.length, 1);
+    });
+
+    test("test_min_max_functions", () {
+      String sql =
+          "select ST_MinX(geom), ST_MaxX(geom),ST_MinY(geom),ST_MaxY(geom) from polygon2d where geom is not null";
+      var result = vectorDb.select(sql);
+      var row = result.first;
+
+      expect(row.columnAt(0), 0.0);
+      expect(row.columnAt(1), 10.0);
+      expect(row.columnAt(2), 0.0);
+      expect(row.columnAt(3), 10.0);
+
+      expect(result.length, 1);
+    });
+
+    test("test_attributes_update", () {
+      String sql = "select * from point2d where fid=1";
+      var result = vectorDb.select(sql);
+      var row = result.first;
+
+      var geomField = row['geom'];
+      var intField = row['intfield'];
+      var strField = row['strfield'];
+      var realField = row['realfield'];
+      var dateTimeField = row['datetimefield'];
+      var dateField = row['datefield'];
+      var binaryField = row['binaryfield'];
+
+      var geometry = GeoPkgGeomReader(geomField).get();
+      expect(geometry.toText(), "POINT (1 2)");
+      expect(intField, 1);
+      expect(strField, "foo");
+      expect(realField, 1.23456);
+      expect(dateTimeField, "2014-06-07T14:20:00Z");
+      expect(dateField, "2014-06-07");
+      expect(binaryField.length, 3);
+
+      String updateSql = """
+          update point2d set geom=?, intfield=?, strField=?, realField=?, datetimefield=?, datefield=?
+          where fid=1
+          """;
+
+      var newPoint =
+          GeometryFactory.defaultPrecision().createPoint(Coordinate(10, 20));
+      var geometryBytes = GeoPkgGeomWriter().write(newPoint);
+      var arguments = [
+        geometryBytes,
+        5,
+        "bau",
+        -0.12345,
+        "2014-06-23T23:23:00Z",
+        "2014-06-23",
+      ];
+      var updated = vectorDb.updatePrepared(updateSql, arguments);
+      expect(updated, 1);
+
+      result = vectorDb.select(sql);
+      row = result.first;
+
+      geomField = row['geom'];
+      intField = row['intfield'];
+      strField = row['strfield'];
+      realField = row['realfield'];
+      dateTimeField = row['datetimefield'];
+      dateField = row['datefield'];
+      binaryField = row['binaryfield'];
+
+      geometry = GeoPkgGeomReader(geomField).get();
+      expect(geometry.toText(), "POINT (10 20)");
+      expect(intField, 5);
+      expect(strField, "bau");
+      expect(realField, -0.12345);
+      expect(dateTimeField, "2014-06-23T23:23:00Z");
+      expect(dateField, "2014-06-23");
+      expect(binaryField.length, 3);
     });
   });
 }

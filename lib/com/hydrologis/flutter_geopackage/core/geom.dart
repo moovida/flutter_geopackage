@@ -1,5 +1,11 @@
 part of flutter_geopackage;
 
+/// Ported from geotools by Andrea Antonello
+///
+/// Authors of geotools java version:
+///  Justin Deoliveira
+///  Niels Charlier
+
 /// EnvelopeType specified in the header of a Geometry (see Geopackage specs)
 class EnvelopeType {
   static const NONE = const EnvelopeType._(0, 0);
@@ -21,13 +27,12 @@ class EnvelopeType {
 }
 
 /// GeoPackage Binary Type inside Geometry Header Flags.
-///
-/// @author Niels Charlier
 class GeopackageBinaryType {
   static const StandardGeoPackageBinary = const GeopackageBinaryType._(0);
   static const ExtendedGeoPackageBinary = const GeopackageBinaryType._(1);
 
-  static List<GeopackageBinaryType> get values => [StandardGeoPackageBinary, ExtendedGeoPackageBinary];
+  static List<GeopackageBinaryType> get values =>
+      [StandardGeoPackageBinary, ExtendedGeoPackageBinary];
 
   final int value;
 
@@ -39,9 +44,6 @@ class GeopackageBinaryType {
 }
 
 /// The Geopackage Geometry BLOB Header Flags (see Geopackage specs).
-///
-/// @author Justin Deoliveira
-/// @author Niels Charlier
 class GeometryHeaderFlags {
   int b;
 
@@ -98,9 +100,6 @@ class GeometryHeaderFlags {
 }
 
 /// The Geopackage Geometry BLOB Header (see Geopackage specs).
-///
-/// @author Justin Deoliveira
-/// @author Niels Charlier
 class GeometryHeader {
   int version;
   GeometryHeaderFlags flags;
@@ -147,11 +146,9 @@ class GeometryHeader {
 /// List<int> geomBytes = rs.getBytes(index);
 ///   if (geomBytes != null) {
 ///   Geometry geometry = new GeoPkgGeomReader(geomBytes).get();
-///
-/// @author Justin Deoliveira
-/// @author Niels Charlier
 class GeoPkgGeomReader {
-  static final GeometryFactory DEFAULT_GEOM_FACTORY = new GeometryFactory.defaultPrecision();
+  static final GeometryFactory DEFAULT_GEOM_FACTORY =
+      new GeometryFactory.defaultPrecision();
 
   Uint8List _dataBuffer;
 
@@ -190,7 +187,6 @@ class GeoPkgGeomReader {
     return _geometry;
   }
 
-
   Envelope getEnvelope() {
     if (_getHeader().getFlags().getEnvelopeIndicator() == EnvelopeType.NONE) {
       return get().getEnvelopeInternal();
@@ -206,57 +202,55 @@ class GeoPkgGeomReader {
     return g;
   }
 
-   /*
-    * OptimizedGeoPackageBinary {
-    * byte[3] magic = 0x47504230; // 'GPB'
-    * byte flags;                 // see flags layout below
-    * unit32 srid;
-    * double[] envelope;          // see flags envelope contents indicator code below
-    * WKBGeometry geometry;       // per OGC 06-103r4 clause 8
-    *
-    *
-    * flags layout:
-    *   bit     7       6       5       4       3       2       1       0
-    *   use     -       -       X       Y       E       E       E       B
-
-    *   use:
-    *   X: GeoPackageBinary type (0: StandardGeoPackageBinary, 1: ExtendedGeoPackageBinary)
-    *   Y: 0: non-empty geometry, 1: empty geometry
-    *
-    *   E: envelope contents indicator code (3-bit unsigned integer)
-    *     value |                    description                               | envelope length (bytes)
-    *       0   | no envelope (space saving slower indexing option)            |      0
-    *       1   | envelope is [minx, maxx, miny, maxy]                         |      32
-    *       2   | envelope is [minx, maxx, miny, maxy, minz, maxz]             |      48
-    *       3   | envelope is [minx, maxx, miny, maxy, minm, maxm]             |      48
-    *       4   | envelope is [minx, maxx, miny, maxy, minz, maxz, minm, maxm] |      64
-    *   B: byte order for header values (1-bit Boolean)
-    *       0 = Big Endian   (most significant bit first)
-    *       1 = Little Endian (least significant bit first)
-    */
+  /// OptimizedGeoPackageBinary {
+  /// byte[3] magic = 0x47504230; // 'GPB'
+  /// byte flags;                 // see flags layout below
+  /// unit32 srid;
+  /// double[] envelope;          // see flags envelope contents indicator code below
+  /// WKBGeometry geometry;       // per OGC 06-103r4 clause 8
+  ///
+  ///
+  /// flags layout:
+  ///   bit     7       6       5       4       3       2       1       0
+  ///   use     -       -       X       Y       E       E       E       B
+  ///
+  ///   use:
+  ///   X: GeoPackageBinary type (0: StandardGeoPackageBinary, 1: ExtendedGeoPackageBinary)
+  ///   Y: 0: non-empty geometry, 1: empty geometry
+  ///
+  ///   E: envelope contents indicator code (3-bit unsigned integer)
+  ///     value |                    description                               | envelope length (bytes)
+  ///       0   | no envelope (space saving slower indexing option)            |      0
+  ///       1   | envelope is [minx, maxx, miny, maxy]                         |      32
+  ///       2   | envelope is [minx, maxx, miny, maxy, minz, maxz]             |      48
+  ///       3   | envelope is [minx, maxx, miny, maxy, minm, maxm]             |      48
+  ///       4   | envelope is [minx, maxx, miny, maxy, minz, maxz, minm, maxm] |      64
+  ///   B: byte order for header values (1-bit Boolean)
+  ///       0 = Big Endian   (most significant bit first)
+  ///       1 = Little Endian (least significant bit first)
   GeometryHeader readHeader() {
     GeometryHeader h = new GeometryHeader();
 
-// read first 4 bytes
-// TODO: something with the magic number
-//    byte[] buf = new byte[4];
+    // read first 4 bytes
+    // TODO: something with the magic number
+    //    byte[] buf = new byte[4];
     _din = ByteOrderDataInStream(_dataBuffer);
     var b1 = _din.readByte();
     var b2 = _din.readByte();
     var b3 = _din.readByte();
     int flag = _din.readByte();
 
-// next byte flags
+    // next byte flags
     h.setFlags(new GeometryHeaderFlags(flag)); //(byte) buf[3]));
 
-// set endianess
-//    ByteOrderDataInStream din = new ByteOrderDataInStream(input);
+    // set endianess
+    //    ByteOrderDataInStream din = new ByteOrderDataInStream(input);
     _din.setOrder(h.getFlags().getEndianess());
 
-// read the srid
+    // read the srid
     h.setSrid(_din.readInt());
 
-// read the envelope
+    // read the envelope
     EnvelopeType envelopeIndicator = h.getFlags().getEnvelopeIndicator();
     if (envelopeIndicator != EnvelopeType.NONE) {
       double x1 = _din.readDouble();
@@ -265,13 +259,13 @@ class GeoPkgGeomReader {
       double y2 = _din.readDouble();
 
       if (envelopeIndicator.value > 1) {
-// 2 = minz,maxz; 3 = minm,maxm - we ignore these for now
+        // 2 = minz,maxz; 3 = minm,maxm - we ignore these for now
         _din.readDouble();
         _din.readDouble();
       }
 
       if (envelopeIndicator.value > 3) {
-// 4 = minz,maxz,minm,maxm - we ignore these for now
+        // 4 = minz,maxz,minm,maxm - we ignore these for now
         _din.readDouble();
         _din.readDouble();
       }
@@ -279,5 +273,77 @@ class GeoPkgGeomReader {
       h.setEnvelope(new Envelope(x1, x2, y1, y2));
     }
     return h;
+  }
+}
+
+/// Translates a vividsolutions Geometry to a GeoPackage geometry BLOB.
+class GeoPkgGeomWriter {
+  bool writeEnvelope;
+  int dim;
+
+  GeoPkgGeomWriter({this.dim = 2, this.writeEnvelope = true});
+
+  List<int> write(Geometry g) {
+    List<int> bout = [];
+    writeToList(g, bout);
+    return Uint8List.fromList(bout);
+  }
+
+  void writeToList(Geometry g, List<int> out) {
+    if (g == null) {
+      return;
+    }
+
+    GeometryHeaderFlags flags = new GeometryHeaderFlags(0);
+
+    flags.setBinaryType(GeopackageBinaryType.StandardGeoPackageBinary);
+    flags.setEmpty(g.isEmpty());
+    flags.setEndianess(Endian.big);
+    flags.setEnvelopeIndicator(
+        writeEnvelope ? EnvelopeType.XY : EnvelopeType.NONE);
+
+    GeometryHeader h = new GeometryHeader();
+    h.setVersion(0);
+    h.setFlags(flags);
+    h.setSrid(g.getSRID());
+    if (writeEnvelope) {
+      h.setEnvelope(g.getEnvelopeInternal());
+    }
+
+    // write out magic + flags + srid + envelope
+    out.add(0x47);
+    out.add(0x50);
+    out.add(h.getVersion());
+    out.add(flags.toByte());
+
+    Endian endian = flags.getEndianess();
+    out.addAll(bytesFromInt32(g.getSRID(), endian));
+
+    if (flags.getEnvelopeIndicator() != EnvelopeType.NONE) {
+      Envelope env = g.getEnvelopeInternal();
+      out.addAll(bytesFromDouble(env.getMinX(), endian));
+      out.addAll(bytesFromDouble(env.getMaxX(), endian));
+      out.addAll(bytesFromDouble(env.getMinY(), endian));
+      out.addAll(bytesFromDouble(env.getMaxY(), endian));
+    }
+
+    new WKBWriter.withDimOrder(dim, endian).writeStream(g, out);
+  }
+
+  /// Convert a 32 bit integer [number] to its int representation.
+  static List<int> bytesFromInt32(int number, [Endian endian = Endian.big]) {
+    var tmp = Uint8List.fromList([0, 0, 0, 0]);
+    ByteData bdata = ByteData.view(tmp.buffer);
+    bdata.setInt32(0, number, endian);
+    return tmp;
+  }
+
+  /// Convert a 64 bit double [number] to its int representation.
+  static List<int> bytesFromDouble(double number,
+      [Endian endian = Endian.big]) {
+    var tmp = Uint8List.fromList([0, 0, 0, 0, 0, 0, 0, 0]);
+    ByteData bdata = ByteData.view(tmp.buffer);
+    bdata.setFloat64(0, number, endian);
+    return tmp;
   }
 }

@@ -65,6 +65,18 @@ class SqliteDb {
     _db.execute(updateSql);
     return _db.getUpdatedRows();
   }
+  
+  int updatePrepared(String updateSql, [List<dynamic> arguments]) {
+    PreparedStatement updateStmt;
+    try {
+      updateStmt = _db.prepare(updateSql);
+      updateStmt.execute(arguments);
+
+      return _db.getUpdatedRows();
+    } finally {
+      updateStmt?.close();
+    }
+  }
 
   // int updateMap(String tableName, Map<String, dynamic> values) {
 

@@ -931,6 +931,10 @@ class GeopackageDb {
     return _sqliteDb.update(updateSql);
   }
 
+  int updatePrepared(String updateSql, [List<dynamic> arguments]) {
+    return _sqliteDb.updatePrepared(updateSql, arguments);
+  }
+
   Iterable<Row> select(String sql) {
     return _sqliteDb.select(sql);
   }
@@ -949,38 +953,6 @@ class GeopackageDb {
     moorDb.createFunction(
         "ST_IsEmpty", 1, Pointer.fromFunction(isEmptyFunction),
         isDeterministic: true, directOnly: false);
-
-    // database.create_function("ST_MinX", 1, new GPGeometryFunction(){
-    //     @Override
-    //     public Object execute( GeoPkgGeomReader reader ) throws IOException {
-    //         return reader.getEnvelope().getMinX();
-    //     }
-    // });
-    // database.create_function("ST_MaxX", 1, new GPGeometryFunction(){
-    //     @Override
-    //     public Object execute( GeoPkgGeomReader reader ) throws IOException {
-    //         return reader.getEnvelope().getMaxX();
-    //     }
-    // });
-    // database.create_function("ST_MinY", 1, new GPGeometryFunction(){
-    //     @Override
-    //     public Object execute( GeoPkgGeomReader reader ) throws IOException {
-    //         return reader.getEnvelope().getMinY();
-    //     }
-    // });
-    // database.create_function("ST_MaxY", 1, new GPGeometryFunction(){
-    //     @Override
-    //     public Object execute( GeoPkgGeomReader reader ) throws IOException {
-    //         return reader.getEnvelope().getMaxY();
-    //     }
-    // });
-    //
-    // database.create_function("ST_IsEmpty", 1, new GPGeometryFunction(){
-    //     @Override
-    //     public Object execute( GeoPkgGeomReader reader ) throws IOException {
-    //         return reader.getHeader().getFlags().isEmpty();
-    //     }
-    // });
   }
 }
 
