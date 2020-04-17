@@ -1,7 +1,7 @@
 # flutter_geopackage
 
 [![pub package](https://img.shields.io/pub/v/flutter_geopackage.svg)](https://pub.dev/packages/flutter_geopackage)
-[![Build Status](https://travis-ci.org/moovida/flutter_geopackage.svg?branch=master)](https://travis-ci.org/moovida/flutter_geopackage)
+[![Build Status](https://travis-ci.org/moovida/flutter_geopackage.svg?branch=moor_test)](https://travis-ci.org/moovida/flutter_geopackage)
 
 A module to support **OGC geopackage** with sqlite.
 
