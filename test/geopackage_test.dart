@@ -1,26 +1,35 @@
 import 'dart:io';
 
 import 'package:dart_jts/dart_jts.dart';
+import 'package:flutter_geopackage/com/hydrologis/flutter_geopackage/core/tiles.dart';
 import 'package:flutter_geopackage/flutter_geopackage.dart';
 import "package:test/test.dart";
 
 void main() async {
   GeopackageDb vectorDb;
   GeopackageDb rasterDb;
+  GeopackageDb earth4326Db;
 
   setUpAll(() async {
     var ch = ConnectionsHandler();
     File vectorDbFile = File("./test/gdal_sample.gpkg");
     vectorDb = await ch.open(vectorDbFile.path);
     vectorDb.openOrCreate();
+
     File rasterDbFile = File("./test/tiles_3857.gpkg");
     rasterDb = await ch.open(rasterDbFile.path);
     rasterDb.openOrCreate();
+
+    File earthDbFile = File("./test/earth.gpkg");
+    earth4326Db = await ch.open(earthDbFile.path);
+    earth4326Db.openOrCreate();
+    earth4326Db.forceRasterMobileCompatibility = false;
   });
 
   tearDownAll(() {
     vectorDb?.close();
     rasterDb?.close();
+    earth4326Db?.close();
   });
 
   group("Geopackage Vectors - ", () {
@@ -255,6 +264,41 @@ void main() async {
     test("testGetTile", () {
       List<int> tileBytes = rasterDb.getTile('tiles', 0, 0, 1);
       expect(tileBytes.length, 3231);
+    });
+  });
+
+  group("Geopackage Free Tiles Tests - ", () {
+    test("test bounds", () {
+      TileEntry entry = earth4326Db.tile('clouds');
+      TilesFetcher fetcher = TilesFetcher(entry);
+      var tileBounds = fetcher.getTileBounds(0, 0);
+      expect(tileBounds.getMinX(), -180);
+      expect(tileBounds.getMaxX(), -135);
+      expect(tileBounds.getMinY(), 45);
+      expect(tileBounds.getMaxY(), 90);
+
+      tileBounds = fetcher.getTileBounds(2, 3);
+      expect(tileBounds.getMinX(), -90);
+      expect(tileBounds.getMaxX(), -45);
+      expect(tileBounds.getMinY(), -90);
+      expect(tileBounds.getMaxY(), -45);
+
+      tileBounds = fetcher.getTileBounds(7, 7);
+      expect(tileBounds.getMinX(), 135);
+      expect(tileBounds.getMaxX(), 180);
+      expect(tileBounds.getMinY(), -270);
+      expect(tileBounds.getMaxY(), -225);
+    });
+
+    test("test tile fetching", () {
+      TileEntry entry = earth4326Db.tile('clouds');
+      TilesFetcher fetcher = TilesFetcher(entry);
+      var tile = fetcher.getTile(earth4326Db, 0, 0);
+      expect(tile != null, true);
+      tile = fetcher.getTile(earth4326Db, 2, 3);
+      expect(tile != null, true);
+      tile = fetcher.getTile(earth4326Db, 7, 7);
+      expect(tile != null, false);
     });
   });
 }

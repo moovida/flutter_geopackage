@@ -128,7 +128,7 @@ class GeopackageDb {
       addDefaultSpatialReferences();
 
       var lines = sqlString.split("\n");
-      lines.removeWhere((line)=> line.trim().startsWith("--"));
+      lines.removeWhere((line) => line.trim().startsWith("--"));
       sqlString = lines.join(" ");
       var split = sqlString.trim().split(";");
       for (int i = 0; i < split.length; i++) {
@@ -721,9 +721,8 @@ class GeopackageDb {
     sqlString = sqlString.replaceAll("CCC", geometryName);
     sqlString = sqlString.replaceAll("III", pk);
 
-
     var lines = sqlString.split("\n");
-    lines.removeWhere((line)=> line.trim().startsWith("--"));
+    lines.removeWhere((line) => line.trim().startsWith("--"));
     sqlString = lines.join(" ");
     var split = sqlString.trim().split(";");
     for (int i = 0; i < split.length; i++) {
@@ -873,6 +872,17 @@ class GeopackageDb {
     var tmsTileXY = osmTile2TmsTile(tx, ty, zoom);
     ty = tmsTileXY[1];
 //     }
+    String sql = SELECTQUERY_PRE +
+        DbsUtilities.fixTableName(tableName) +
+        SELECTQUERY_POST;
+    var res = _sqliteDb.select(sql, [zoom, tx, ty]);
+    if (res.isNotEmpty) {
+      return res.first[COL_TILES_TILE_DATA];
+    }
+    return null;
+  }
+
+  List<int> getTileDirect(String tableName, int tx, int ty, int zoom) {
     String sql = SELECTQUERY_PRE +
         DbsUtilities.fixTableName(tableName) +
         SELECTQUERY_POST;
