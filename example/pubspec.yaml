@@ -60,5 +60,4 @@ flutter:
   uses-material-design: true
 
   assets:
-    - testdbs/gdal_sample.gpkg
-    - testdbs/tiles_3857.gpkg
+    - testdbs/earth.gpkg

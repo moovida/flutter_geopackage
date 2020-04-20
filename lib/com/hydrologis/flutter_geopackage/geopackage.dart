@@ -525,7 +525,10 @@ class GeopackageDb {
   /// @return The list of geometries intersecting the envelope.
   /// @throws Exception
   List<Geometry> getGeometriesIn(String tableName,
-      {Envelope envelope, List<String> prePostWhere, int limit = -1}) {
+      {Envelope envelope,
+      List<String> prePostWhere,
+      int limit = -1,
+      String userDataField}) {
     List<String> wheres = [];
     String pre = "";
     String post = "";
@@ -539,13 +542,15 @@ class GeopackageDb {
       }
     }
 
+    String userDataSql = userDataField != null ? ", $userDataField " : "";
+
     String pk = _sqliteDb.getPrimaryKey(tableName);
     GeometryColumn gCol = getGeometryColumnsForTable(tableName);
     String sql = "SELECT " +
         pre +
         gCol.geometryColumnName +
         post +
-        " as the_geom, $pk FROM " +
+        " as the_geom, $pk $userDataSql FROM " +
         DbsUtilities.fixTableName(tableName);
 
     if (envelope != null) {
@@ -570,16 +575,21 @@ class GeopackageDb {
     List<Geometry> geoms = [];
     var res = _sqliteDb.select(sql);
     res.forEach((map) {
-      var geomBytes = map["the_geom"];
+      var geomBytes = map.columnAt(0);
       if (geomBytes != null) {
         Geometry geom = GeoPkgGeomReader(geomBytes).get();
-        var pkValue = map[pk];
-        geom.setUserData(pkValue);
+        var pkValue = map.columnAt(1);
+        if (userDataField != null) {
+          geom.setUserData(map.columnAt(2));
+        } else {
+          geom.setUserData(pkValue);
+        }
         if (_supportsRtree || envelope == null) {
           geoms.add(geom);
         } else if (envelope != null &&
             geom.getEnvelopeInternal().intersectsEnvelope(envelope)) {
           // if no spatial index is available, filter the geoms manually
+          // print(pkValue.toString() + ": ${geom.getEnvelopeInternal()}");
           geoms.add(geom);
         }
       }
@@ -595,10 +605,15 @@ class GeopackageDb {
   ///
   /// @return The list of geometries intersecting the geometry.
   List<Geometry> getGeometriesIntersecting(String tableName,
-      {Geometry geometry, List<String> prePostWhere, int limit = -1}) {
+      {Geometry geometry,
+      List<String> prePostWhere,
+      int limit = -1,
+      String userDataField}) {
     if (geometry == null) {
       return getGeometriesIn(tableName,
-          prePostWhere: prePostWhere, limit: limit);
+          prePostWhere: prePostWhere,
+          limit: limit,
+          userDataField: userDataField);
     } else {
       var geometriesList = getGeometriesIn(
         tableName,

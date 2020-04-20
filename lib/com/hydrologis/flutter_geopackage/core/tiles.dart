@@ -144,6 +144,9 @@ class TilesFetcher {
   int xPixels;
   int yPixels;
 
+  int matrixWidth;
+  int matrixHeight;
+
   TilesFetcher(this.tileEntry, {this.zoomLevel}) {
     tileMatricies = tileEntry.getTileMatricies();
     if (tileMatricies.isEmpty) {
@@ -159,8 +162,9 @@ class TilesFetcher {
     if (tileMatrix == null) {
       throw StateError("No tile matrix found for given zoomlevel.");
     }
-    var matrixWidth = tileMatrix.getMatrixWidth();
-    var matrixHeight = tileMatrix.getMatrixHeight();
+
+    matrixWidth = tileMatrix.getMatrixWidth();
+    matrixHeight = tileMatrix.getMatrixHeight();
 
     var tileMatrixSetBounds = tileEntry.getTileMatrixSetBounds();
 
@@ -186,10 +190,10 @@ class TilesFetcher {
     return Envelope(minX, maxX, minY, maxY);
   }
 
-  GpkgTile getLazyTile(GeopackageDb db, int xTile, int yTile) {
+  LazyGpkgTile getLazyTile(GeopackageDb db, int xTile, int yTile) {
     var tileBounds = getTileBounds(xTile, yTile);
 
-    GpkgTile tile = GpkgTile()
+    LazyGpkgTile tile = LazyGpkgTile()
       ..tableName = tableName
       ..db = db
       ..tileBoundsLatLong = tileBounds
@@ -200,9 +204,23 @@ class TilesFetcher {
       ..yPixels = yPixels;
     return tile;
   }
+
+  List<LazyGpkgTile> getAllLazyTiles(GeopackageDb db) {
+    var env = Envelope(-180, 180, -90, 90);
+    List<LazyGpkgTile> tiles = [];
+    for (var x = 0; x < matrixWidth; x++) {
+      for (var y = 0; y < matrixHeight; y++) {
+        var lazyTile = getLazyTile(db, x, y);
+        if (lazyTile != null && env.coversEnvelope(lazyTile.tileBoundsLatLong))
+          tiles.add(lazyTile);
+      }
+    }
+    return tiles;
+  }
 }
 
-class GpkgTile {
+/// A lazy loading geopackage tile.
+class LazyGpkgTile {
   String tableName;
   Envelope tileBoundsLatLong;
 
@@ -219,4 +237,36 @@ class GpkgTile {
     if (db != null)
       tileImageBytes = db.getTileDirect(tableName, xTile, yTile, zoomLevel);
   }
+
+  @override
+  String toString() {
+    return "Tile of $tableName: x=$xTile, y=$yTile, z=$zoomLevel, loaded=${tileImageBytes != null}";
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is LazyGpkgTile &&
+      other.tableName == tableName &&
+      other.xTile == xTile &&
+      other.yTile == yTile &&
+      other.zoomLevel == zoomLevel;
+
+  @override
+  int get hashCode => hashObjects([tableName, xTile, yTile, zoomLevel]);
+}
+
+/// Generates a hash code for multiple [objects].
+int hashObjects(Iterable objects) =>
+    _finish(objects.fold(0, (h, i) => _combine(h, i.hashCode)));
+
+int _combine(int hash, int value) {
+  hash = 0x1fffffff & (hash + value);
+  hash = 0x1fffffff & (hash + ((0x0007ffff & hash) << 10));
+  return hash ^ (hash >> 6);
+}
+
+int _finish(int hash) {
+  hash = 0x1fffffff & (hash + ((0x03ffffff & hash) << 3));
+  hash = hash ^ (hash >> 11);
+  return 0x1fffffff & (hash + ((0x00003fff & hash) << 15));
 }

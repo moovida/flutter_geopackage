@@ -1,7 +1,8 @@
-import 'package:dart_jts/dart_jts.dart';
+import 'package:dart_jts/dart_jts.dart' as JTS;
 import 'package:flutter/material.dart';
 import 'package:flutter_geopackage/flutter_geopackage.dart';
 import 'package:flutter_map/plugin_api.dart';
+import 'package:geopackage_example/image_provider.dart';
 import 'package:latlong/latlong.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -24,7 +25,9 @@ enum states {
 class _GeopackageTestViewState extends State<GeopackageTestView> {
   /// Loading state: 0=startuop, 1=loaded, -1=no storage permission
   states _currentState = states.STARTUP;
-  List<Widget> _widgets;
+  List<LazyGpkgTile> allLazyTiles;
+  List<JTS.Geometry> placesGeoms;
+  List<JTS.Geometry> countriesGeoms;
 
   final job = AssetCopyJob(
     assets: [
@@ -49,9 +52,8 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
       print("copying gpkg files...");
       job.future.then((_) async {
         print("copying done");
-        _currentState = states.LOADED;
-
         await loadData();
+        _currentState = states.LOADED;
         setState(() {});
       }).catchError((e, stack) {
         print("Error while copying:\n$e");
@@ -68,7 +70,23 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
     var earthPath = files[0].path;
 
     var ch = ConnectionsHandler();
-    GeopackageDb db = await ch.open(earthPath);
+
+    var db = await ch.open(earthPath);
+    db.forceRasterMobileCompatibility = false;
+
+    // load tiles
+    var tileEntry = db.tile("clouds");
+    TilesFetcher fetcher = TilesFetcher(tileEntry);
+    allLazyTiles = fetcher.getAllLazyTiles(db);
+
+    // load places
+    var dataEnv = JTS.Envelope(-9, 22, 35, 63);
+    placesGeoms =
+        db.getGeometriesIn("places", userDataField: "name", envelope: dataEnv);
+
+    // load countries
+    countriesGeoms =
+        db.getGeometriesIn("countries", envelope: dataEnv);
   }
 
   Future<bool> _checkStoragePermissions() async {
@@ -121,24 +139,95 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
   }
 
   Widget getMap() {
-    var overlayImages = <OverlayImage>[
-      OverlayImage(
-          bounds: LatLngBounds(LatLng(51.5, -0.09), LatLng(48.8566, 2.3522)),
-          opacity: 0.8,
-          imageProvider: NetworkImage(
-              'https://images.pexels.com/photos/231009/pexels-photo-231009.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=300&w=600')),
-    ];
+    var overlayImages = allLazyTiles.map((lt) {
+      var minX = lt.tileBoundsLatLong.getMinX();
+      var minY = lt.tileBoundsLatLong.getMinY();
+      var maxX = lt.tileBoundsLatLong.getMaxX();
+      var maxY = lt.tileBoundsLatLong.getMaxY();
+
+      return OverlayImage(
+        bounds: LatLngBounds(LatLng(minY, minX), LatLng(maxY, maxX)),
+        opacity: 0.7,
+        imageProvider: GeopackageImageProvider(lt),
+      );
+    }).toList();
+
+    Widget circle = new Container(
+      width: 10.0,
+      height: 10.0,
+      decoration: new BoxDecoration(
+        color: Colors.red,
+        shape: BoxShape.circle,
+      ),
+    );
+    var markers = placesGeoms.map((g) {
+      var c = g.getCoordinate();
+      var name = g.getUserData().toString();
+      return Marker(
+        width: 200.0,
+        height: 80.0,
+        anchorPos: AnchorPos.align(AnchorAlign.right),
+        point: new LatLng(c.y, c.x),
+        builder: (ctx) => new Row(
+          children: <Widget>[
+            circle,
+            Stack(
+              children: <Widget>[
+                Text(
+                  name,
+                  style: TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  name,
+                  style: TextStyle(
+                    color: Colors.red,
+                  ),
+                ),
+              ],
+            )
+          ],
+        ),
+      );
+    }).toList();
+
+    List<Polygon> polygons = [];
+    Color strokeColor = Colors.green;
+    Color fillColor = Colors.green.withAlpha(70);
+    countriesGeoms.forEach((polyGeom) {
+      for (int i = 0; i < polyGeom.getNumGeometries(); i++) {
+        try {
+          var geometryN = polyGeom.getGeometryN(i);
+          List<LatLng> polyPoints =
+              geometryN.getCoordinates().map((c) => LatLng(c.y, c.x)).toList();
+          polygons.add(
+            Polygon(
+              points: polyPoints,
+              borderStrokeWidth: 3,
+              borderColor: strokeColor,
+              color: fillColor,
+            ),
+          );
+        } catch (e) {}
+      }
+    });
 
     return FlutterMap(
       options: MapOptions(
-        center: LatLng(51.5, -0.09),
-        zoom: 6.0,
+        center: LatLng(46, 11),
+        zoom: 4.0,
       ),
       layers: [
         TileLayerOptions(
             urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
             subdomains: ['a', 'b', 'c']),
-        OverlayImageLayerOptions(overlayImages: overlayImages)
+        // OverlayImageLayerOptions(overlayImages: overlayImages),
+        PolygonLayerOptions(
+          polygons: polygons,
+        ),
+        MarkerLayerOptions(
+          markers: markers,
+        ),
       ],
     );
   }
