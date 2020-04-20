@@ -143,6 +143,9 @@ class TilesFetcher {
   double tileSetMinX;
   double tileSetMaxY;
 
+  int xPixels;
+  int yPixels;
+
   TilesFetcher(this.tileEntry, {this.zoomLevel}) {
     tileMatricies = tileEntry.getTileMatricies();
     if (tileMatricies.isEmpty) {
@@ -170,6 +173,9 @@ class TilesFetcher {
     tileSetMaxY = tileMatrixSetBounds.getMaxY();
 
     tableName = tileEntry.getTableName();
+
+    xPixels = tileMatrix.getTileWidth();
+    yPixels = tileMatrix.getTileHeight();
   }
 
   Envelope getTileBounds(int xTile, int yTile) {
@@ -182,8 +188,31 @@ class TilesFetcher {
     return Envelope(minX, maxX, minY, maxY);
   }
 
-  List<int> getTile(GeopackageDb db, int xTile, int yTile) {
+  List<int> getTileIndex(double lon, double lat) {}
+
+  GpkgTile getTile(GeopackageDb db, int xTile, int yTile) {
+    var tileBounds = getTileBounds(xTile, yTile);
+
     List<int> tileBytes = db.getTileDirect(tableName, xTile, yTile, zoomLevel);
-    return tileBytes;
+
+    GpkgTile tile = GpkgTile()
+      ..tileBoundsLatLong = tileBounds
+      ..tileImageBytes = tileBytes
+      ..xTile = xTile
+      ..yTile = yTile
+      ..xPixels = xPixels
+      ..yPixels = yPixels;
+    return tile;
   }
+}
+
+class GpkgTile {
+  Envelope tileBoundsLatLong;
+
+  int xTile;
+  int yTile;
+  int xPixels;
+  int yPixels;
+
+  List<int> tileImageBytes;
 }

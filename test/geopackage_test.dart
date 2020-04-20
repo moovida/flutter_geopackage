@@ -271,34 +271,39 @@ void main() async {
     test("test bounds", () {
       TileEntry entry = earth4326Db.tile('clouds');
       TilesFetcher fetcher = TilesFetcher(entry);
-      var tileBounds = fetcher.getTileBounds(0, 0);
-      expect(tileBounds.getMinX(), -180);
-      expect(tileBounds.getMaxX(), -135);
-      expect(tileBounds.getMinY(), 45);
-      expect(tileBounds.getMaxY(), 90);
+      var tile = fetcher.getTile(earth4326Db, 0, 0);
+      expect(tile.tileBoundsLatLong.getMinX(), -180);
+      expect(tile.tileBoundsLatLong.getMaxX(), -135);
+      expect(tile.tileBoundsLatLong.getMinY(), 45);
+      expect(tile.tileBoundsLatLong.getMaxY(), 90);
 
-      tileBounds = fetcher.getTileBounds(2, 3);
-      expect(tileBounds.getMinX(), -90);
-      expect(tileBounds.getMaxX(), -45);
-      expect(tileBounds.getMinY(), -90);
-      expect(tileBounds.getMaxY(), -45);
+      tile = fetcher.getTile(earth4326Db, 2, 3);
+      expect(tile.tileBoundsLatLong.getMinX(), -90);
+      expect(tile.tileBoundsLatLong.getMaxX(), -45);
+      expect(tile.tileBoundsLatLong.getMinY(), -90);
+      expect(tile.tileBoundsLatLong.getMaxY(), -45);
 
-      tileBounds = fetcher.getTileBounds(7, 7);
-      expect(tileBounds.getMinX(), 135);
-      expect(tileBounds.getMaxX(), 180);
-      expect(tileBounds.getMinY(), -270);
-      expect(tileBounds.getMaxY(), -225);
+      tile = fetcher.getTile(earth4326Db, 7, 7);
+      expect(tile.tileBoundsLatLong.getMinX(), 135);
+      expect(tile.tileBoundsLatLong.getMaxX(), 180);
+      expect(tile.tileBoundsLatLong.getMinY(), -270);
+      expect(tile.tileBoundsLatLong.getMaxY(), -225);
+
+      expect(tile.xTile, 7);
+      expect(tile.yTile, 7);
+      expect(tile.xPixels, 256);
+      expect(tile.yPixels, 256);
     });
 
     test("test tile fetching", () {
       TileEntry entry = earth4326Db.tile('clouds');
       TilesFetcher fetcher = TilesFetcher(entry);
       var tile = fetcher.getTile(earth4326Db, 0, 0);
-      expect(tile != null, true);
+      expect(tile.tileImageBytes != null, true);
       tile = fetcher.getTile(earth4326Db, 2, 3);
-      expect(tile != null, true);
+      expect(tile.tileImageBytes != null, true);
       tile = fetcher.getTile(earth4326Db, 7, 7);
-      expect(tile != null, false);
+      expect(tile.tileImageBytes != null, false);
     });
   });
 }
