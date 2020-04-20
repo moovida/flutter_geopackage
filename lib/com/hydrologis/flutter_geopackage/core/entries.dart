@@ -1,4 +1,4 @@
-import 'package:dart_jts/dart_jts.dart';
+part of flutter_geopackage;
 
 class DataType {
   static const Feature = const DataType._("features");

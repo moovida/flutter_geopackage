@@ -1,6 +1,4 @@
-import 'package:dart_jts/dart_jts.dart';
-import 'package:flutter_geopackage/com/hydrologis/flutter_geopackage/core/entries.dart';
-import 'package:flutter_geopackage/flutter_geopackage.dart';
+part of flutter_geopackage;
 
 /// Tiles Entry inside a GeoPackage.
 ///
