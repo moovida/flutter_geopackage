@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:dart_jts/dart_jts.dart';
-import 'package:flutter_geopackage/com/hydrologis/flutter_geopackage/core/tiles.dart';
 import 'package:flutter_geopackage/flutter_geopackage.dart';
 import "package:test/test.dart";
 
