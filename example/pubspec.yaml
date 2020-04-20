@@ -36,6 +36,9 @@ dependencies:
   flutter_geopackage:
     path: ../../flutter_geopackage
 
+  # MIT
+  proj4dart: 1.0.4
+
   dart_jts: ^0.0.5+1
 #    git:
 #      url: https://github.com/moovida/dart_jts.git
@@ -61,3 +64,4 @@ flutter:
 
   assets:
     - testdbs/earth.gpkg
+    - testdbs/earthlights.gpkg

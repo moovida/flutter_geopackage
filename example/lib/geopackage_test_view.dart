@@ -5,6 +5,7 @@ import 'package:flutter_map/plugin_api.dart';
 import 'package:geopackage_example/image_provider.dart';
 import 'package:latlong/latlong.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:proj4dart/proj4dart.dart' as PRJ;
 
 import 'file_copy_job.dart';
 
@@ -25,13 +26,16 @@ enum states {
 class _GeopackageTestViewState extends State<GeopackageTestView> {
   /// Loading state: 0=startuop, 1=loaded, -1=no storage permission
   states _currentState = states.STARTUP;
-  List<LazyGpkgTile> allLazyTiles;
+  List<LazyGpkgTile> allLazy4326Tiles;
+  List<LazyGpkgTile> allLazy3857Tiles;
   List<JTS.Geometry> placesGeoms;
   List<JTS.Geometry> countriesGeoms;
+  bool _showClouds = false;
 
   final job = AssetCopyJob(
     assets: [
       'testdbs/earth.gpkg',
+      'testdbs/earthlights.gpkg',
     ],
     overwrite: false,
   );
@@ -68,25 +72,45 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
     final files = await job.future;
     if (files[0] == null) throw job.errors[0];
     var earthPath = files[0].path;
+    var earthLightsPath = files[1].path;
 
     var ch = ConnectionsHandler();
 
-    var db = await ch.open(earthPath);
-    db.forceRasterMobileCompatibility = false;
+    var earthDb = await ch.open(earthPath);
+    earthDb.forceRasterMobileCompatibility = false;
 
     // load tiles
-    var tileEntry = db.tile("clouds");
-    TilesFetcher fetcher = TilesFetcher(tileEntry);
-    allLazyTiles = fetcher.getAllLazyTiles(db);
+    var cloudsTileEntry = earthDb.tile("clouds");
+    TilesFetcher cloudsFetcher = TilesFetcher(cloudsTileEntry);
+    allLazy4326Tiles = cloudsFetcher.getAllLazyTiles(earthDb);
 
     // load places
     var dataEnv = JTS.Envelope(-9, 22, 35, 63);
-    placesGeoms =
-        db.getGeometriesIn("places", userDataField: "name", envelope: dataEnv);
+    placesGeoms = earthDb.getGeometriesIn("places",
+        userDataField: "name", envelope: dataEnv);
 
     // load countries
-    countriesGeoms =
-        db.getGeometriesIn("countries", envelope: dataEnv);
+    countriesGeoms = earthDb.getGeometriesIn("countries", envelope: dataEnv);
+
+    var earthLigthsDb = await ch.open(earthLightsPath);
+    earthLigthsDb.forceRasterMobileCompatibility = false;
+
+    PRJ.Projection tmerc = PRJ.Projection("EPSG:3857");
+    PRJ.Projection wgs84 = PRJ.Projection.WGS84;
+
+    var lightsTileEntry = earthLigthsDb.tile("lights");
+    TilesFetcher lightsFetcher = TilesFetcher(lightsTileEntry);
+
+    allLazy3857Tiles = lightsFetcher.getAllLazyTiles(earthLigthsDb,
+        to4326BoundsConverter: (JTS.Envelope env) {
+      var x1 = env.getMinX();
+      var x2 = env.getMaxX();
+      var y1 = env.getMinY();
+      var y2 = env.getMaxY();
+      var newP1 = tmerc.transform(wgs84, PRJ.Point(x: x1, y: y1));
+      var newP2 = tmerc.transform(wgs84, PRJ.Point(x: x2, y: y2));
+      return JTS.Envelope(newP1.x, newP2.x, newP1.y, newP2.y);
+    });
   }
 
   Future<bool> _checkStoragePermissions() async {
@@ -111,6 +135,33 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
     return Scaffold(
       appBar: AppBar(
         title: Text("Test App Geopackage"),
+        actions: <Widget>[
+          _showClouds
+              ? IconButton(
+                  tooltip: "Show a 3857 night lights layer",
+                  icon: Icon(
+                    Icons.lightbulb_outline,
+                    color: Colors.white,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _showClouds = !_showClouds;
+                    });
+                  },
+                )
+              : IconButton(
+                  tooltip: "Show a 4326 clouds layer (note shift)",
+                  icon: Icon(
+                    Icons.cloud,
+                    color: Colors.white,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _showClouds = !_showClouds;
+                    });
+                  },
+                )
+        ],
       ),
       body: _currentState == states.STARTUP
           ? Center(child: CircularProgressIndicator())
@@ -139,18 +190,31 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
   }
 
   Widget getMap() {
-    var overlayImages = allLazyTiles.map((lt) {
-      var minX = lt.tileBoundsLatLong.getMinX();
-      var minY = lt.tileBoundsLatLong.getMinY();
-      var maxX = lt.tileBoundsLatLong.getMaxX();
-      var maxY = lt.tileBoundsLatLong.getMaxY();
+    var overlayImages4326 = _showClouds
+        ? allLazy4326Tiles.map((lt) {
+            var minX = lt.tileBoundsLatLong.getMinX();
+            var minY = lt.tileBoundsLatLong.getMinY();
+            var maxX = lt.tileBoundsLatLong.getMaxX();
+            var maxY = lt.tileBoundsLatLong.getMaxY();
 
-      return OverlayImage(
-        bounds: LatLngBounds(LatLng(minY, minX), LatLng(maxY, maxX)),
-        opacity: 0.7,
-        imageProvider: GeopackageImageProvider(lt),
-      );
-    }).toList();
+            return OverlayImage(
+              bounds: LatLngBounds(LatLng(minY, minX), LatLng(maxY, maxX)),
+              opacity: 0.7,
+              imageProvider: GeopackageImageProvider(lt),
+            );
+          }).toList()
+        : allLazy3857Tiles.map((lt) {
+            var minX = lt.tileBoundsLatLong.getMinX();
+            var minY = lt.tileBoundsLatLong.getMinY();
+            var maxX = lt.tileBoundsLatLong.getMaxX();
+            var maxY = lt.tileBoundsLatLong.getMaxY();
+
+            return OverlayImage(
+              bounds: LatLngBounds(LatLng(minY, minX), LatLng(maxY, maxX)),
+              opacity: 0.7,
+              imageProvider: GeopackageImageProvider(lt),
+            );
+          }).toList();
 
     Widget circle = new Container(
       width: 10.0,
@@ -192,8 +256,8 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
     }).toList();
 
     List<Polygon> polygons = [];
-    Color strokeColor = Colors.green;
-    Color fillColor = Colors.green.withAlpha(70);
+    Color strokeColor = Colors.cyan;
+    Color fillColor = Colors.cyan.withAlpha(70);
     countriesGeoms.forEach((polyGeom) {
       for (int i = 0; i < polyGeom.getNumGeometries(); i++) {
         try {
@@ -221,7 +285,7 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
         TileLayerOptions(
             urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
             subdomains: ['a', 'b', 'c']),
-        // OverlayImageLayerOptions(overlayImages: overlayImages),
+        OverlayImageLayerOptions(overlayImages: overlayImages4326),
         PolygonLayerOptions(
           polygons: polygons,
         ),

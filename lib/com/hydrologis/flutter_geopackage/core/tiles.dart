@@ -190,8 +190,11 @@ class TilesFetcher {
     return Envelope(minX, maxX, minY, maxY);
   }
 
-  LazyGpkgTile getLazyTile(GeopackageDb db, int xTile, int yTile) {
+  LazyGpkgTile getLazyTile(GeopackageDb db, int xTile, int yTile,
+      {Function to4326BoundsConverter}) {
     var tileBounds = getTileBounds(xTile, yTile);
+    if (to4326BoundsConverter != null)
+      tileBounds = to4326BoundsConverter(tileBounds);
 
     LazyGpkgTile tile = LazyGpkgTile()
       ..tableName = tableName
@@ -205,12 +208,14 @@ class TilesFetcher {
     return tile;
   }
 
-  List<LazyGpkgTile> getAllLazyTiles(GeopackageDb db) {
+  List<LazyGpkgTile> getAllLazyTiles(GeopackageDb db,
+      {Function to4326BoundsConverter}) {
     var env = Envelope(-180, 180, -90, 90);
     List<LazyGpkgTile> tiles = [];
     for (var x = 0; x < matrixWidth; x++) {
       for (var y = 0; y < matrixHeight; y++) {
-        var lazyTile = getLazyTile(db, x, y);
+        var lazyTile =
+            getLazyTile(db, x, y, to4326BoundsConverter: to4326BoundsConverter);
         if (lazyTile != null && env.coversEnvelope(lazyTile.tileBoundsLatLong))
           tiles.add(lazyTile);
       }

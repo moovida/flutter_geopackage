@@ -324,12 +324,12 @@ packages:
     source: hosted
     version: "1.0.3"
   proj4dart:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: proj4dart
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "1.0.5"
+    version: "1.0.4"
   quiver:
     dependency: transitive
     description:
