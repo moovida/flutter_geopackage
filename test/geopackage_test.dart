@@ -270,19 +270,19 @@ void main() async {
     test("test bounds", () {
       TileEntry entry = earth4326Db.tile('clouds');
       TilesFetcher fetcher = TilesFetcher(entry);
-      var tile = fetcher.getTile(earth4326Db, 0, 0);
+      var tile = fetcher.getLazyTile(earth4326Db, 0, 0);
       expect(tile.tileBoundsLatLong.getMinX(), -180);
       expect(tile.tileBoundsLatLong.getMaxX(), -135);
       expect(tile.tileBoundsLatLong.getMinY(), 45);
       expect(tile.tileBoundsLatLong.getMaxY(), 90);
 
-      tile = fetcher.getTile(earth4326Db, 2, 3);
+      tile = fetcher.getLazyTile(earth4326Db, 2, 3);
       expect(tile.tileBoundsLatLong.getMinX(), -90);
       expect(tile.tileBoundsLatLong.getMaxX(), -45);
       expect(tile.tileBoundsLatLong.getMinY(), -90);
       expect(tile.tileBoundsLatLong.getMaxY(), -45);
 
-      tile = fetcher.getTile(earth4326Db, 7, 7);
+      tile = fetcher.getLazyTile(earth4326Db, 7, 7);
       expect(tile.tileBoundsLatLong.getMinX(), 135);
       expect(tile.tileBoundsLatLong.getMaxX(), 180);
       expect(tile.tileBoundsLatLong.getMinY(), -270);
@@ -297,11 +297,18 @@ void main() async {
     test("test tile fetching", () {
       TileEntry entry = earth4326Db.tile('clouds');
       TilesFetcher fetcher = TilesFetcher(entry);
-      var tile = fetcher.getTile(earth4326Db, 0, 0);
+      
+      var tile = fetcher.getLazyTile(earth4326Db, 0, 0);
+      expect(tile.tileImageBytes != null, false);
+      tile.fetch();
       expect(tile.tileImageBytes != null, true);
-      tile = fetcher.getTile(earth4326Db, 2, 3);
+
+      tile = fetcher.getLazyTile(earth4326Db, 2, 3);
+      tile.fetch();
       expect(tile.tileImageBytes != null, true);
-      tile = fetcher.getTile(earth4326Db, 7, 7);
+
+      tile = fetcher.getLazyTile(earth4326Db, 7, 7);
+      tile.fetch();
       expect(tile.tileImageBytes != null, false);
     });
   });

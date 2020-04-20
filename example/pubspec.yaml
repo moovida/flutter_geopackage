@@ -27,6 +27,12 @@ dependencies:
   # MIT
   permission_handler: ^4.4.0+hotfix.2
 
+  # apache
+  latlong: 0.6.1
+
+  # BSD
+  flutter_map: ^0.9.0
+
   flutter_geopackage:
     path: ../../flutter_geopackage
 
@@ -56,4 +62,3 @@ flutter:
   assets:
     - testdbs/gdal_sample.gpkg
     - testdbs/tiles_3857.gpkg
-

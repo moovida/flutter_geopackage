@@ -186,18 +186,16 @@ class TilesFetcher {
     return Envelope(minX, maxX, minY, maxY);
   }
 
-  List<int> getTileIndex(double lon, double lat) {}
-
-  GpkgTile getTile(GeopackageDb db, int xTile, int yTile) {
+  GpkgTile getLazyTile(GeopackageDb db, int xTile, int yTile) {
     var tileBounds = getTileBounds(xTile, yTile);
 
-    List<int> tileBytes = db.getTileDirect(tableName, xTile, yTile, zoomLevel);
-
     GpkgTile tile = GpkgTile()
+      ..tableName = tableName
+      ..db = db
       ..tileBoundsLatLong = tileBounds
-      ..tileImageBytes = tileBytes
       ..xTile = xTile
       ..yTile = yTile
+      ..zoomLevel = zoomLevel
       ..xPixels = xPixels
       ..yPixels = yPixels;
     return tile;
@@ -205,12 +203,20 @@ class TilesFetcher {
 }
 
 class GpkgTile {
+  String tableName;
   Envelope tileBoundsLatLong;
 
   int xTile;
   int yTile;
+  int zoomLevel;
   int xPixels;
   int yPixels;
 
   List<int> tileImageBytes;
+  GeopackageDb db;
+
+  fetch() {
+    if (db != null)
+      tileImageBytes = db.getTileDirect(tableName, xTile, yTile, zoomLevel);
+  }
 }
