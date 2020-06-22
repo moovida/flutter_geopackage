@@ -186,21 +186,17 @@ packages:
   moor:
     dependency: transitive
     description:
-      path: moor
-      ref: develop
-      resolved-ref: "3c9684116a6237f629276a1467d083a96913ccf9"
-      url: "https://github.com/moovida/moor.git"
-    source: git
-    version: "3.0.0-dev"
+      name: moor
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "3.1.0"
   moor_ffi:
     dependency: "direct main"
     description:
-      path: moor_ffi
-      ref: develop
-      resolved-ref: "3c9684116a6237f629276a1467d083a96913ccf9"
-      url: "https://github.com/moovida/moor.git"
-    source: git
-    version: "0.5.0-dev"
+      name: moor_ffi
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "0.6.0"
   multi_server_socket:
     dependency: transitive
     description:
