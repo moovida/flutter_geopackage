@@ -76,7 +76,7 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
 
     var ch = ConnectionsHandler();
 
-    var earthDb = await ch.open(earthPath);
+    var earthDb = ch.open(earthPath);
     earthDb.forceRasterMobileCompatibility = false;
 
     // load tiles
@@ -92,7 +92,7 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
     // load countries
     countriesGeoms = earthDb.getGeometriesIn("countries", envelope: dataEnv);
 
-    var earthLigthsDb = await ch.open(earthLightsPath);
+    var earthLigthsDb = ch.open(earthLightsPath);
     earthLigthsDb.forceRasterMobileCompatibility = false;
 
     PRJ.Projection tmerc = PRJ.Projection("EPSG:3857");
