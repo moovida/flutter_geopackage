@@ -79,8 +79,8 @@ class GeopackageDb {
   @override
   int get hashCode => _dbPath.hashCode;
 
-  openOrCreate({Function dbCreateFunction}) async {
-    await _sqliteDb.openOrCreate();
+  openOrCreate({Function dbCreateFunction}) {
+    _sqliteDb.openOrCreate();
 
     // 1196444487 (the 32-bit integer value of 0x47504B47 or GPKG in ASCII) for GPKG 1.2 and
     // greater
@@ -383,9 +383,9 @@ class GeopackageDb {
     addCRS(srid, auth + ":$srid", auth, srid, wkt, auth + ":$srid");
   }
 
-  Future<void> addCRS(int srid, String srsName, String organization,
-      int organizationCoordSysId, String definition, String description) async {
-    bool hasAlready = await hasCrs(srid);
+  void addCRS(int srid, String srsName, String organization,
+      int organizationCoordSysId, String definition, String description) {
+    bool hasAlready = hasCrs(srid);
     if (hasAlready) return;
 
     String sql =
@@ -421,13 +421,13 @@ class GeopackageDb {
     return tablesMap;
   }
 
-  Future<void> createSpatialTable(
+  void createSpatialTable(
       String tableName,
       int tableSrid,
       String geometryFieldData,
       List<String> fieldData,
       List<String> foreignKeys,
-      bool avoidIndex) async {
+      bool avoidIndex) {
     StringBuffer sb = new StringBuffer();
     sb.write("CREATE TABLE ");
     sb.write(tableName);
@@ -453,7 +453,7 @@ class GeopackageDb {
     addGeometryColumnsEntry(tableName, g[0], g[1], tableSrid, false, false);
 
     if (!avoidIndex) {
-      await createSpatialIndex(tableName, g[0]);
+      createSpatialIndex(tableName, g[0]);
     }
   }
 
@@ -638,9 +638,9 @@ class GeopackageDb {
     return _sqliteDb.getTableColumns(tableName);
   }
 
-  Future<void> addGeometryXYColumnAndIndex(String tableName, String geomColName,
-      String geomType, String epsg) async {
-    await createSpatialIndex(tableName, geomColName);
+  void addGeometryXYColumnAndIndex(
+      String tableName, String geomColName, String geomType, String epsg) {
+    createSpatialIndex(tableName, geomColName);
   }
 
   QueryResult getTableData(String tableName,
@@ -723,7 +723,7 @@ class GeopackageDb {
   /// Create a spatial index
   ///
   /// @param e feature entry to create spatial index for
-  Future<void> createSpatialIndex(String tableName, String geometryName) async {
+  void createSpatialIndex(String tableName, String geometryName) {
     String pk = _sqliteDb.getPrimaryKey(tableName);
     if (pk == null) {
       throw new IOException(
@@ -994,14 +994,14 @@ class ConnectionsHandler {
   ///
   /// The [tableName] can be added to keep track of the tables that
   /// still need an open connection boudn to a given [path].
-  Future<GeopackageDb> open(String path, {String tableName}) async {
+  GeopackageDb open(String path, {String tableName}) {
     GeopackageDb db = _connectionsMap[path];
     if (db == null) {
       db = GeopackageDb(path);
       // db.doRtreeTestCheck = doRtreeCheck;
       db.forceVectorMobileCompatibility = forceVectorMobileCompatibility;
       db.forceRasterMobileCompatibility = forceRasterMobileCompatibility;
-      await db.openOrCreate();
+      db.openOrCreate();
 
       _connectionsMap[path] = db;
     }

@@ -4,23 +4,23 @@ import 'package:dart_jts/dart_jts.dart';
 import 'package:flutter_geopackage/flutter_geopackage.dart';
 import "package:test/test.dart";
 
-void main() async {
+void main() {
   GeopackageDb vectorDb;
   GeopackageDb rasterDb;
   GeopackageDb earth4326Db;
 
-  setUpAll(() async {
+  setUpAll(() {
     var ch = ConnectionsHandler();
     File vectorDbFile = File("./test/gdal_sample.gpkg");
-    vectorDb = await ch.open(vectorDbFile.path);
+    vectorDb = ch.open(vectorDbFile.path);
     vectorDb.openOrCreate();
 
     File rasterDbFile = File("./test/tiles_3857.gpkg");
-    rasterDb = await ch.open(rasterDbFile.path);
+    rasterDb = ch.open(rasterDbFile.path);
     rasterDb.openOrCreate();
 
     File earthDbFile = File("./test/earth.gpkg");
-    earth4326Db = await ch.open(earthDbFile.path);
+    earth4326Db = ch.open(earthDbFile.path);
     earth4326Db.openOrCreate();
     earth4326Db.forceRasterMobileCompatibility = false;
   });
@@ -297,7 +297,7 @@ void main() async {
     test("test tile fetching", () {
       TileEntry entry = earth4326Db.tile('clouds');
       TilesFetcher fetcher = TilesFetcher(entry);
-      
+
       var tile = fetcher.getLazyTile(earth4326Db, 0, 0);
       expect(tile.tileImageBytes != null, false);
       tile.fetch();

@@ -7,12 +7,12 @@ class SqliteDb {
 
   SqliteDb(this._dbPath);
 
-  Future<void> openOrCreate({Function dbCreateFunction}) async {
+  void openOrCreate({Function dbCreateFunction}) {
     var dbFile = File(_dbPath);
-    bool existsAlready = await dbFile.exists();
+    bool existsAlready = dbFile.existsSync();
     _db = Database.openFile(dbFile);
     if (!existsAlready) {
-      await dbCreateFunction(_db);
+      dbCreateFunction(_db);
     }
   }
 
@@ -66,7 +66,7 @@ class SqliteDb {
     _db.execute(updateSql);
     return _db.getUpdatedRows();
   }
-  
+
   int updatePrepared(String updateSql, [List<dynamic> arguments]) {
     PreparedStatement updateStmt;
     try {
