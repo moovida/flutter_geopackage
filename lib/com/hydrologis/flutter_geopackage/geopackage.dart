@@ -953,12 +953,19 @@ class GeopackageDb {
   }
 
   void createFunctions() {
-    DbFunctionsCreator fc = DbFunctionsCreator(_sqliteDb);
-    fc.createFunction("ST_MinX", 1, MinxFunction());
-    fc.createFunction("ST_MaxX", 1, MaxxFunction());
-    fc.createFunction("ST_MinY", 1, MinyFunction());
-    fc.createFunction("ST_MaxY", 1, MaxyFunction());
-    fc.createFunction("ST_IsEmpty", 1, IsEmptyFunction());
+    var moorDb = _sqliteDb.getInternalDb();
+    moorDb.createFunction('ST_MinX', 1, Pointer.fromFunction(minxFunction));
+    moorDb.createFunction('ST_MaxX', 1, Pointer.fromFunction(maxxFunction));
+    moorDb.createFunction('ST_MinY', 1, Pointer.fromFunction(minyFunction));
+    moorDb.createFunction('ST_MaxY', 1, Pointer.fromFunction(maxyFunction));
+    moorDb.createFunction('ST_IsEmpty', 1, Pointer.fromFunction(isEmptyFunction));
+
+    // DbFunctionsCreator fc = DbFunctionsCreator(_sqliteDb);
+    // fc.createFunction("ST_MinX", 1, minxFunction);
+    // fc.createFunction("ST_MaxX", 1, maxxFunction);
+    // fc.createFunction("ST_MinY", 1, minyFunction);
+    // fc.createFunction("ST_MaxY", 1, maxyFunction);
+    // fc.createFunction("ST_IsEmpty", 1, isEmptyFunction);
   }
 }
 

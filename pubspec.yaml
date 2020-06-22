@@ -20,7 +20,7 @@ dependencies:
 
 
   # MIT
-  # moor_ffi: ^0.6.0
+  moor_ffi: ^0.6.0
     # git:
     #   url: https://github.com/moovida/moor.git
     #   ref: develop
