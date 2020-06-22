@@ -7,6 +7,9 @@ A module to support **OGC geopackage** with sqlite.
 
 At the moment 3857 tiles in google schema and proj4 compatible vector (features) tables are supported.
 
+This uses [moor_ffi](https://pub.dev/packages/moor_ffi) to handle sqlite, since it supports functions.
+Earlier version used to use sqflite.
+
 **View the example README for instructions on how to integrate it in an app.**
 
 
