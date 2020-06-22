@@ -80,7 +80,7 @@ class GeopackageDb {
   int get hashCode => _dbPath.hashCode;
 
   openOrCreate({Function dbCreateFunction}) {
-    _sqliteDb.openOrCreate();
+    _sqliteDb.open(dbCreateFunction: dbCreateFunction);
 
     // 1196444487 (the 32-bit integer value of 0x47504B47 or GPKG in ASCII) for GPKG 1.2 and
     // greater
@@ -215,7 +215,7 @@ class GeopackageDb {
     return contents;
   }
 
-  TileEntry createTileEntry(Row row) {
+  TileEntry createTileEntry(dynamic row) {
     TileEntry e = new TileEntry();
     e.setIdentifier(row["identifier"]);
     e.setDescription(row["description"]);
@@ -304,7 +304,7 @@ class GeopackageDb {
     return "rtree_" + feature.tableName + "_" + feature.geometryColumn;
   }
 
-  FeatureEntry createFeatureEntry(Row rs) {
+  FeatureEntry createFeatureEntry(dynamic rs) {
     FeatureEntry e = new FeatureEntry();
     e.setIdentifier(rs["identifier"]);
     e.setDescription(rs["description"]);
@@ -391,7 +391,7 @@ class GeopackageDb {
     String sql =
         "INSERT INTO $SPATIAL_REF_SYS (srs_id, srs_name, organization, organization_coordsys_id, definition, description) VALUES (?,?,?,?,?,?)";
 
-    int inserted = _sqliteDb.insertPrepared(sql, [
+    int inserted = _sqliteDb.execute(sql, [
       srid,
       srsName,
       organization,
@@ -627,7 +627,7 @@ class GeopackageDb {
   }
 
   List<String> getTables(bool doOrder) {
-    return _sqliteDb.getTables(doOrder);
+    return _sqliteDb.getTables(doOrder: doOrder);
   }
 
   bool hasTable(String tableName) {
@@ -791,7 +791,7 @@ class GeopackageDb {
       maxy = crsBounds.getMaxY();
     }
 
-    _sqliteDb.insertPrepared(sb.toString(), [
+    _sqliteDb.execute(sb.toString(), [
       tableName,
       DataType.Feature.value,
       tableName,
@@ -828,7 +828,7 @@ class GeopackageDb {
 // geometryless tables should not be inserted into this table.
     String sql = "INSERT INTO $GEOMETRY_COLUMNS VALUES (?, ?, ?, ?, ?, ?);";
 
-    _sqliteDb.insertPrepared(sql, [
+    _sqliteDb.execute(sql, [
       tableName,
       geometryName,
       geometryType,
@@ -848,7 +848,7 @@ class GeopackageDb {
     var res = _sqliteDb.select(sql);
     BasicStyle style = BasicStyle();
     if (res.length == 1) {
-      Row row = res.first;
+      var row = res.first;
       String jsonStyle = row['simplified'];
       style.setFromJson(jsonStyle);
     }
@@ -941,31 +941,24 @@ class GeopackageDb {
   }
 
   int update(String updateSql) {
-    return _sqliteDb.update(updateSql);
+    return _sqliteDb.execute(updateSql);
   }
 
   int updatePrepared(String updateSql, [List<dynamic> arguments]) {
-    return _sqliteDb.updatePrepared(updateSql, arguments);
+    return _sqliteDb.execute(updateSql, arguments);
   }
 
-  Iterable<Row> select(String sql) {
+  Iterable<dynamic> select(String sql) {
     return _sqliteDb.select(sql);
   }
 
   void createFunctions() {
-    var moorDb = _sqliteDb.getInternalDb();
-
-    moorDb.createFunction("ST_MinX", 1, Pointer.fromFunction(minXFunction),
-        isDeterministic: true, directOnly: false);
-    moorDb.createFunction("ST_MaxX", 1, Pointer.fromFunction(maxXFunction),
-        isDeterministic: true, directOnly: false);
-    moorDb.createFunction("ST_MinY", 1, Pointer.fromFunction(minYFunction),
-        isDeterministic: true, directOnly: false);
-    moorDb.createFunction("ST_MaxY", 1, Pointer.fromFunction(maxYFunction),
-        isDeterministic: true, directOnly: false);
-    moorDb.createFunction(
-        "ST_IsEmpty", 1, Pointer.fromFunction(isEmptyFunction),
-        isDeterministic: true, directOnly: false);
+    DbFunctionsCreator fc = DbFunctionsCreator(_sqliteDb);
+    fc.createFunction("ST_MinX", 1, MinxFunction());
+    fc.createFunction("ST_MaxX", 1, MaxxFunction());
+    fc.createFunction("ST_MinY", 1, MinyFunction());
+    fc.createFunction("ST_MaxY", 1, MaxyFunction());
+    fc.createFunction("ST_IsEmpty", 1, IsEmptyFunction());
   }
 }
 
