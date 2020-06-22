@@ -10,7 +10,7 @@ environment:
 
 dependencies:
   intl: ^0.16.1
-  dart_jts: ^0.0.5+2
+  dart_jts: ^0.0.5+4
 #    git:
 #      url: https://github.com/moovida/dart_jts.git
 
