@@ -643,6 +643,10 @@ class GeopackageDb {
     createSpatialIndex(tableName, geomColName);
   }
 
+  String getPrimaryKey(String tableName) {
+    return _sqliteDb.getPrimaryKey(tableName);
+  }
+
   QueryResult getTableData(String tableName,
       {Envelope envelope, Geometry geometry, int limit}) {
     QueryResult queryResult = new QueryResult();
@@ -958,7 +962,8 @@ class GeopackageDb {
     moorDb.createFunction('ST_MaxX', 1, Pointer.fromFunction(maxxFunction));
     moorDb.createFunction('ST_MinY', 1, Pointer.fromFunction(minyFunction));
     moorDb.createFunction('ST_MaxY', 1, Pointer.fromFunction(maxyFunction));
-    moorDb.createFunction('ST_IsEmpty', 1, Pointer.fromFunction(isEmptyFunction));
+    moorDb.createFunction(
+        'ST_IsEmpty', 1, Pointer.fromFunction(isEmptyFunction));
 
     // DbFunctionsCreator fc = DbFunctionsCreator(_sqliteDb);
     // fc.createFunction("ST_MinX", 1, minxFunction);
