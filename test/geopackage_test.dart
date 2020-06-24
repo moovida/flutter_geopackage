@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:dart_jts/dart_jts.dart';
+import 'package:flutter_geopackage/com/hydrologis/flutter_geopackage/core/queries.dart';
 import 'package:flutter_geopackage/flutter_geopackage.dart';
 import "package:test/test.dart";
 
@@ -29,6 +30,74 @@ void main() {
     vectorDb?.close();
     rasterDb?.close();
     earth4326Db?.close();
+  });
+
+  group("Geopackage Test Creation - ", () {
+    test("test new db creation", () {
+      var db = GeopackageDb.memory();
+      try {
+        db.openOrCreate();
+
+        expect(db.hasTable(TABLE_GEOPACKAGE_CONTENTS), true);
+        expect(db.hasTable(TABLE_SPATIAL_REF_SYS), true);
+        expect(db.hasTable(TABLE_DATA_COLUMN_CONSTRAINTS), true);
+        expect(db.hasTable(TABLE_DATA_COLUMNS), true);
+        expect(db.hasTable(TABLE_EXTENSIONS), true);
+        expect(db.hasTable(TABLE_GEOMETRY_COLUMNS), true);
+        expect(db.hasTable(TABLE_METADATA_REFERENCE), true);
+        expect(db.hasTable(TABLE_METADATA), true);
+        expect(db.hasTable(TABLE_TILE_MATRIX_SET), true);
+        expect(db.hasTable(TABLE_TILE_MATRIX_METADATA), true);
+      } finally {
+        db.close();
+      }
+    });
+    test("test new table creation", () {
+      var db = GeopackageDb.memory();
+      try {
+        db.openOrCreate();
+
+        db.createSpatialTable(
+          "table1",
+          4326,
+          "the_geom POINT",
+          [
+            "id INTEGER PRIMARY KEY AUTOINCREMENT",
+            "name TEXT NOT NULL",
+          ],
+          null,
+          false,
+        );
+
+        expect(db.hasTable("table1"), true);
+        expect(db.hasSpatialIndex("table1"), true);
+
+        var result =
+            db.select("select name from sqlite_master where type = 'trigger';");
+        expect(result.length, 6);
+
+        var gf = GeometryFactory.defaultPrecision();
+        var point1 = gf.createPoint(Coordinate(1.0, 1.0));
+        var geomBytes1 = GeoPkgGeomWriter().write(point1);
+        var point2 = gf.createPoint(Coordinate(2.0, 2.0));
+        var geomBytes2 = GeoPkgGeomWriter().write(point2);
+        var point3 = gf.createPoint(Coordinate(100.0, 100.0));
+        var geomBytes3 = GeoPkgGeomWriter().write(point3);
+
+        var sql = "INSERT INTO table1 (the_geom, name) VALUES (?,?);";
+
+        db.execute(sql, [geomBytes1, 'the one']);
+        db.execute(sql, [geomBytes2, 'the two']);
+        db.execute(sql, [geomBytes3, 'the three']);
+
+        var geometries =
+            db.getGeometriesIn("table1", envelope: Envelope(0, 1.5, 0, 1.5));
+        expect(geometries.length, 1);
+        expect(geometries.first.distance(point1), 0);
+      } finally {
+        db.close();
+      }
+    });
   });
 
   group("Geopackage Vectors - ", () {
@@ -196,7 +265,7 @@ void main() {
         "2014-06-23T23:23:00Z",
         "2014-06-23",
       ];
-      var updated = vectorDb.updatePrepared(updateSql, arguments);
+      var updated = vectorDb.execute(updateSql, arguments);
       expect(updated, 1);
 
       result = vectorDb.select(sql);
