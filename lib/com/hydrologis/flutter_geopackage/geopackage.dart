@@ -6,28 +6,6 @@ part of flutter_geopackage;
 class GeopackageDb {
   static const String HM_STYLES_TABLE = "hm_styles";
 
-  static const String GEOPACKAGE_CONTENTS = "gpkg_contents";
-
-  static const String GEOMETRY_COLUMNS = "gpkg_geometry_columns";
-
-  static const String SPATIAL_REF_SYS = "gpkg_spatial_ref_sys";
-
-  static const String RASTER_COLUMNS = "gpkg_data_columns";
-
-  static const String TILE_MATRIX_METADATA = "gpkg_tile_matrix";
-
-  static const String METADATA = "gpkg_metadata";
-
-  static const String METADATA_REFERENCE = "gpkg_metadata_reference";
-
-  static const String TILE_MATRIX_SET = "gpkg_tile_matrix_set";
-
-  static const String DATA_COLUMN_CONSTRAINTS = "gpkg_data_column_constraints";
-
-  static const String EXTENSIONS = "gpkg_extensions";
-
-  static const String SPATIAL_INDEX = "gpkg_spatial_index";
-
   static const String DATE_FORMAT_STRING = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
 
   static const String COL_TILES_ZOOM_LEVEL = "zoom_level";
@@ -118,30 +96,32 @@ class GeopackageDb {
     }
 
     if (!_isGpgkInitialized) {
-      String sqlString = SPATIAL_REF_SYS;
-      sqlString += GEOMETRY_COLUMNS;
-      sqlString += GEOPACKAGE_CONTENTS;
-      sqlString += TILE_MATRIX_SET;
-      sqlString += TILE_MATRIX_METADATA;
-      sqlString += RASTER_COLUMNS;
-      sqlString += METADATA;
-      sqlString += METADATA_REFERENCE;
-      sqlString += DATA_COLUMN_CONSTRAINTS;
-      sqlString += EXTENSIONS;
+      _sqliteDb.transaction((_db) {
+        _db.execute(GPKG_SPATIAL_REF_SYS);
+        _db.execute(GPKG_GEOMETRY_COLUMNS);
+        _db.execute(GPKG_CONTENTS);
+        _db.execute(GPKG_TILE_MATRIX_SET);
+        _db.execute(GPKG_TILE_MATRIX);
+        _db.execute(GPKG_DATA_COLUMNS);
+        _db.execute(GPKG_METADATA);
+        _db.execute(GPKG_METADATA_REFERENCE);
+        _db.execute(GPKG_DATA_COLUMN_CONSTRAINTS);
+        _db.execute(GPKG_EXTENSIONS);
+      });
+
+      // var lines = sqlString.split("\n");
+      // lines.removeWhere((line) => line.trim().startsWith("--"));
+      // sqlString = lines.join(" ");
+      // var split = sqlString.trim().split(";");
+      // for (int i = 0; i < split.length; i++) {
+      //   var sql = split[i].trim();
+      //   if (sql.length > 0 && !sql.startsWith("--")) {
+      //     print(sql);
+      //     _sqliteDb.execute(sql);
+      //   }
+      // }
 
       addDefaultSpatialReferences();
-
-      var lines = sqlString.split("\n");
-      lines.removeWhere((line) => line.trim().startsWith("--"));
-      sqlString = lines.join(" ");
-      var split = sqlString.trim().split(";");
-      for (int i = 0; i < split.length; i++) {
-        var sql = split[i].trim();
-        if (sql.length > 0 && !sql.startsWith("--")) {
-          print(sql);
-          _sqliteDb.execute(sql);
-        }
-      }
 
       _sqliteDb.execute("PRAGMA application_id = 0x47503130;");
       _gpkgVersion = "1.0/1.1";
@@ -162,7 +142,7 @@ class GeopackageDb {
         forceVectorMobileCompatibility ? "and c.srs_id = $WGS84LL_SRID" : "";
     String sql = """
         SELECT a.*, b.column_name, b.geometry_type_name, b.z, b.m, c.organization_coordsys_id, c.definition
-        FROM $GEOPACKAGE_CONTENTS a, $GEOMETRY_COLUMNS b, $SPATIAL_REF_SYS c WHERE a.table_name = b.table_name
+        FROM $TABLE_GEOPACKAGE_CONTENTS a, $TABLE_GEOMETRY_COLUMNS b, $TABLE_SPATIAL_REF_SYS c WHERE a.table_name = b.table_name
         AND a.srs_id = c.srs_id AND a.data_type = ? $compat
         """
         .trim();
@@ -181,14 +161,14 @@ class GeopackageDb {
   /// @param name THe name of the feature entry.
   /// @return The entry, or <code>null</code> if no such entry exists.
   FeatureEntry feature(String name) {
-    if (!_sqliteDb.hasTable(GEOMETRY_COLUMNS)) {
+    if (!_sqliteDb.hasTable(TABLE_GEOMETRY_COLUMNS)) {
       return null;
     }
     String compat =
         forceVectorMobileCompatibility ? "and c.srs_id = $WGS84LL_SRID" : "";
     String sql = """
         SELECT a.*, b.column_name, b.geometry_type_name, b.m, b.z, c.organization_coordsys_id, c.definition
-        FROM $GEOPACKAGE_CONTENTS a, $GEOMETRY_COLUMNS b, $SPATIAL_REF_SYS c WHERE a.table_name = b.table_name
+        FROM $TABLE_GEOPACKAGE_CONTENTS a, $TABLE_GEOMETRY_COLUMNS b, $TABLE_SPATIAL_REF_SYS c WHERE a.table_name = b.table_name
         AND a.srs_id = c.srs_id $compat AND lower(a.table_name) = lower(?)
         AND a.data_type = ?
         """;
@@ -206,7 +186,7 @@ class GeopackageDb {
         forceRasterMobileCompatibility ? "and c.srs_id = $MERCATOR_SRID" : "";
     String sql = """
     SELECT a.*, c.organization_coordsys_id, c.definition
-    FROM $TILE_MATRIX_SET a, $SPATIAL_REF_SYS c
+    FROM $TABLE_TILE_MATRIX_SET a, $TABLE_SPATIAL_REF_SYS c
     WHERE a.srs_id = c.srs_id $compat
     """;
 
@@ -240,7 +220,7 @@ class GeopackageDb {
             SELECT 1 FROM ${DbsUtilities.fixTableName(e.getTableName())} data 
             where data.zoom_level = tileMatrix.zoom_level
         ) as has_tiles
-        FROM $TILE_MATRIX_METADATA as tileMatrix 
+        FROM $TABLE_TILE_MATRIX_METADATA as tileMatrix 
         WHERE table_name = ? 
         ORDER BY zoom_level ASC
         """;
@@ -271,14 +251,14 @@ class GeopackageDb {
   /// @param name THe name of the tile entry.
   /// @return The entry, or <code>null</code> if no such entry exists.
   TileEntry tile(String name) {
-    if (!_sqliteDb.hasTable(GEOMETRY_COLUMNS)) {
+    if (!_sqliteDb.hasTable(TABLE_GEOMETRY_COLUMNS)) {
       return null;
     }
     String compat =
         forceRasterMobileCompatibility ? "and c.srs_id=$MERCATOR_SRID" : "";
     String sql = """
       SELECT a.*, c.organization_coordsys_id, c.definition
-      FROM $TILE_MATRIX_SET a, $SPATIAL_REF_SYS c
+      FROM $TABLE_TILE_MATRIX_SET a, $TABLE_SPATIAL_REF_SYS c
       WHERE a.srs_id = c.srs_id $compat AND Lower(a.table_name) = Lower(?)
       """;
 
@@ -393,7 +373,7 @@ class GeopackageDb {
     if (hasAlready) return;
 
     String sql =
-        "INSERT INTO $SPATIAL_REF_SYS (srs_id, srs_name, organization, organization_coordsys_id, definition, description) VALUES (?,?,?,?,?,?)";
+        "INSERT INTO $TABLE_SPATIAL_REF_SYS (srs_id, srs_name, organization, organization_coordsys_id, definition, description) VALUES (?,?,?,?,?,?)";
 
     int inserted = _sqliteDb.execute(sql, [
       srid,
@@ -410,7 +390,8 @@ class GeopackageDb {
   }
 
   bool hasCrs(int srid) {
-    String sqlPrep = "SELECT srs_id FROM $SPATIAL_REF_SYS WHERE srs_id = ?";
+    String sqlPrep =
+        "SELECT srs_id FROM $TABLE_SPATIAL_REF_SYS WHERE srs_id = ?";
     var res = _sqliteDb.select(sqlPrep, [srid]);
     return res.length > 0;
   }
@@ -452,7 +433,7 @@ class GeopackageDb {
 
     _sqliteDb.execute(sb.toString());
 
-    List<String> g = geometryFieldData.split("\\s+");
+    List<String> g = geometryFieldData.split(RegExp(r"\s+"));
     addGeoPackageContentsEntry(tableName, tableSrid, null, null);
     addGeometryColumnsEntry(tableName, g[0], g[1], tableSrid, false, false);
 
@@ -738,23 +719,16 @@ class GeopackageDb {
           "Spatial index only supported for primary key of single column.");
     }
 
-    String sqlString = SPATIAL_INDEX;
+    var sqlList = GPKG_SPATIAL_INDEX;
 
-    sqlString = sqlString.replaceAll("TTT", tableName);
-    sqlString = sqlString.replaceAll("CCC", geometryName);
-    sqlString = sqlString.replaceAll("III", pk);
-
-    var lines = sqlString.split("\n");
-    lines.removeWhere((line) => line.trim().startsWith("--"));
-    sqlString = lines.join(" ");
-    var split = sqlString.trim().split(";");
-    for (int i = 0; i < split.length; i++) {
-      var sql = split[i].trim();
-      if (sql.length > 0 && !sql.startsWith("--")) {
-        print(sql);
-        _sqliteDb.execute(sql);
+    _sqliteDb.transaction((_db) {
+      for (var sqlString in sqlList) {
+        sqlString = sqlString.replaceAll("TTT", tableName);
+        sqlString = sqlString.replaceAll("CCC", geometryName);
+        sqlString = sqlString.replaceAll("III", pk);
+        _sqliteDb.execute(sqlString);
       }
-    }
+    });
   }
 
   void addGeoPackageContentsEntry(
@@ -770,7 +744,7 @@ class GeopackageDb {
     StringBuffer vals = new StringBuffer();
 
     sb.write(
-        "INSERT INTO $GEOPACKAGE_CONTENTS (table_name, data_type, identifier");
+        "INSERT INTO $TABLE_GEOPACKAGE_CONTENTS (table_name, data_type, identifier");
     vals.write("VALUES (?,?,?");
 
     if (description == null) {
@@ -834,7 +808,8 @@ class GeopackageDb {
   void addGeometryColumnsEntry(String tableName, String geometryName,
       String geometryType, int srid, bool hasZ, bool hasM) {
 // geometryless tables should not be inserted into this table.
-    String sql = "INSERT INTO $GEOMETRY_COLUMNS VALUES (?, ?, ?, ?, ?, ?);";
+    String sql =
+        "INSERT INTO $TABLE_GEOMETRY_COLUMNS VALUES (?, ?, ?, ?, ?, ?);";
 
     _sqliteDb.execute(sql, [
       tableName,
@@ -948,12 +923,8 @@ class GeopackageDb {
     return list;
   }
 
-  int update(String updateSql) {
-    return _sqliteDb.execute(updateSql);
-  }
-
-  int updatePrepared(String updateSql, [List<dynamic> arguments]) {
-    return _sqliteDb.execute(updateSql, arguments);
+  int execute(String sql, [List<dynamic> arguments]) {
+    return _sqliteDb.execute(sql, arguments);
   }
 
   Iterable<dynamic> select(String sql) {
