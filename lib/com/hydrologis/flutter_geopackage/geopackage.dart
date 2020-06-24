@@ -276,6 +276,9 @@ class GeopackageDb {
   /// @return whether this feature entry has a spatial index available.
   /// @throws IOException
   bool hasSpatialIndex(String table) {
+    if (!_supportsRtree) {
+      return false;
+    }
     FeatureEntry featureEntry = feature(table);
 
     String sql =
@@ -713,6 +716,10 @@ class GeopackageDb {
   ///
   /// @param e feature entry to create spatial index for
   void createSpatialIndex(String tableName, String geometryName) {
+    if (!_supportsRtree) {
+      // if no rtree is supported, the spatial index can't work.
+      return;
+    }
     String pk = _sqliteDb.getPrimaryKey(tableName);
     if (pk == null) {
       throw new IOException(
