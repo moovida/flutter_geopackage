@@ -68,7 +68,11 @@ class GeopackageDb {
   bool doRtreeTestCheck = true;
 
   GeopackageDb(this._dbPath) {
-    _sqliteDb = new SqliteDb(_dbPath);
+    _sqliteDb = SqliteDb(_dbPath);
+  }
+
+  GeopackageDb.memory() {
+    _sqliteDb = SqliteDb.memory();
   }
 
   @override
