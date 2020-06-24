@@ -52,7 +52,7 @@ void main() {
         db.close();
       }
     });
-    test("test new table creation", () {
+    test("test new table creation, insert and update", () {
       var db = GeopackageDb.memory();
       try {
         db.openOrCreate();
@@ -94,6 +94,21 @@ void main() {
             db.getGeometriesIn("table1", envelope: Envelope(0, 1.5, 0, 1.5));
         expect(geometries.length, 1);
         expect(geometries.first.distance(point1), 0);
+
+        var select = db.select("Select * from table1 where name='the two'");
+        expect(select.length, 1);
+        var row = select.first;
+
+        var newRow = {
+          'name': 'updated two',
+          'the_geom': geomBytes1,
+        };
+        var changed = db.updateMap("table1", newRow, "id=${row['id']}");
+        expect(changed, 1);
+
+        geometries =
+            db.getGeometriesIn("table1", envelope: Envelope(0, 1.5, 0, 1.5));
+        expect(geometries.length, 2);
       } finally {
         db.close();
       }

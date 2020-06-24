@@ -927,18 +927,27 @@ class GeopackageDb {
     return _sqliteDb.execute(sql, arguments);
   }
 
+  int updateMap(String table, Map<String, dynamic> values, String where) {
+    return _sqliteDb.updateMap(table, values, where);
+  }
+
   Iterable<dynamic> select(String sql) {
     return _sqliteDb.select(sql);
   }
 
   void createFunctions() {
     var moorDb = _sqliteDb.getInternalDb();
-    moorDb.createFunction('ST_MinX', 1, Pointer.fromFunction(minxFunction));
-    moorDb.createFunction('ST_MaxX', 1, Pointer.fromFunction(maxxFunction));
-    moorDb.createFunction('ST_MinY', 1, Pointer.fromFunction(minyFunction));
-    moorDb.createFunction('ST_MaxY', 1, Pointer.fromFunction(maxyFunction));
+    moorDb.createFunction('ST_MinX', 1, Pointer.fromFunction(minxFunction),
+        isDeterministic: true, directOnly: false);
+    moorDb.createFunction('ST_MaxX', 1, Pointer.fromFunction(maxxFunction),
+        isDeterministic: true, directOnly: false);
+    moorDb.createFunction('ST_MinY', 1, Pointer.fromFunction(minyFunction),
+        isDeterministic: true, directOnly: false);
+    moorDb.createFunction('ST_MaxY', 1, Pointer.fromFunction(maxyFunction),
+        isDeterministic: true, directOnly: false);
     moorDb.createFunction(
-        'ST_IsEmpty', 1, Pointer.fromFunction(isEmptyFunction));
+        'ST_IsEmpty', 1, Pointer.fromFunction(isEmptyFunction),
+        isDeterministic: true, directOnly: false);
 
     // DbFunctionsCreator fc = DbFunctionsCreator(_sqliteDb);
     // fc.createFunction("ST_MinX", 1, minxFunction);
