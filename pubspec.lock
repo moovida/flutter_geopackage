@@ -81,10 +81,12 @@ packages:
   dart_hydrologis_db:
     dependency: "direct main"
     description:
-      name: dart_hydrologis_db
-      url: "https://pub.dartlang.org"
-    source: hosted
-    version: "0.1.0"
+      path: "."
+      ref: HEAD
+      resolved-ref: "03501eb060042cdc52b0a148a53fb2e3b09e9378"
+      url: "https://github.com/moovida/dart_hydrologis_db.git"
+    source: git
+    version: "0.2.0"
   dart_jts:
     dependency: "direct main"
     description:
@@ -200,10 +202,12 @@ packages:
   moor_ffi:
     dependency: "direct main"
     description:
-      name: moor_ffi
-      url: "https://pub.dartlang.org"
-    source: hosted
-    version: "0.6.0"
+      path: moor_ffi
+      ref: develop
+      resolved-ref: "1870ca7455a884f5c405b6bef7ddb120b2b8b287"
+      url: "https://github.com/moovida/moor.git"
+    source: git
+    version: "0.7.0-dev"
   node_interop:
     dependency: transitive
     description:

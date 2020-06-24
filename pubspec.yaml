@@ -11,8 +11,10 @@ environment:
 dependencies:
   intl: ^0.16.1
 
-  dart_hydrologis_db: ^0.1.0
+  dart_hydrologis_db: #^0.1.0
     # path: ../dart_hydrologis_db/
+   git:
+     url: https://github.com/moovida/dart_hydrologis_db.git
 
   dart_jts: ^0.0.5+4
 #    git:
@@ -20,11 +22,11 @@ dependencies:
 
 
   # MIT
-  moor_ffi: ^0.6.0
-    # git:
-    #   url: https://github.com/moovida/moor.git
-    #   ref: develop
-    #   path: moor_ffi
+  moor_ffi: #^0.6.0
+    git:
+      url: https://github.com/moovida/moor.git
+      ref: develop
+      path: moor_ffi
 
 dev_dependencies:
   pedantic: ^1.9.0
