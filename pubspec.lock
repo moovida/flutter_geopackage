@@ -83,7 +83,7 @@ packages:
     description:
       path: "."
       ref: HEAD
-      resolved-ref: "03501eb060042cdc52b0a148a53fb2e3b09e9378"
+      resolved-ref: "2f7f20fba706583756461008967657c90e7515e7"
       url: "https://github.com/moovida/dart_hydrologis_db.git"
     source: git
     version: "0.2.0"

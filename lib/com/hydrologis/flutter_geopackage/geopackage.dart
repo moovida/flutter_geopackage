@@ -378,7 +378,7 @@ class GeopackageDb {
     String sql =
         "INSERT INTO $TABLE_SPATIAL_REF_SYS (srs_id, srs_name, organization, organization_coordsys_id, definition, description) VALUES (?,?,?,?,?,?)";
 
-    int inserted = _sqliteDb.execute(sql, [
+    int insertedCount = _sqliteDb.execute(sql, arguments: [
       srid,
       srsName,
       organization,
@@ -387,7 +387,7 @@ class GeopackageDb {
       description
     ]);
 
-    if (inserted != 1) {
+    if (insertedCount != 1) {
       throw new IOException("Unable to insert CRS: $srid");
     }
   }
@@ -780,7 +780,7 @@ class GeopackageDb {
       maxy = crsBounds.getMaxY();
     }
 
-    _sqliteDb.execute(sb.toString(), [
+    _sqliteDb.execute(sb.toString(), arguments: [
       tableName,
       DataType.Feature.value,
       tableName,
@@ -818,7 +818,7 @@ class GeopackageDb {
     String sql =
         "INSERT INTO $TABLE_GEOMETRY_COLUMNS VALUES (?, ?, ?, ?, ?, ?);";
 
-    _sqliteDb.execute(sql, [
+    _sqliteDb.execute(sql, arguments: [
       tableName,
       geometryName,
       geometryType,
@@ -930,10 +930,20 @@ class GeopackageDb {
     return list;
   }
 
-  int execute(String sql, [List<dynamic> arguments]) {
-    return _sqliteDb.execute(sql, arguments);
+  /// Execute a insert, update or delete using [sql] in normal
+  /// or prepared mode using [arguments].
+  ///
+  /// This returns the number of affected rows. Only if [getLastInsertId]
+  /// is set to true, the id of the last inserted row is returned.
+  int execute(String sql,
+      {List<dynamic> arguments, bool getLastInsertId = false}) {
+    return _sqliteDb.execute(sql,
+        arguments: arguments, getLastInsertId: getLastInsertId);
   }
 
+  /// Update a new record using a map and a where condition.
+  ///
+  /// This returns the number of rows affected.
   int updateMap(String table, Map<String, dynamic> values, String where) {
     return _sqliteDb.updateMap(table, values, where);
   }

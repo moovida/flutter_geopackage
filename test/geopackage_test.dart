@@ -86,9 +86,9 @@ void main() {
 
         var sql = "INSERT INTO table1 (the_geom, name) VALUES (?,?);";
 
-        db.execute(sql, [geomBytes1, 'the one']);
-        db.execute(sql, [geomBytes2, 'the two']);
-        db.execute(sql, [geomBytes3, 'the three']);
+        db.execute(sql, arguments: [geomBytes1, 'the one']);
+        db.execute(sql, arguments: [geomBytes2, 'the two']);
+        db.execute(sql, arguments: [geomBytes3, 'the three']);
 
         var geometries =
             db.getGeometriesIn("table1", envelope: Envelope(0, 1.5, 0, 1.5));
@@ -280,7 +280,7 @@ void main() {
         "2014-06-23T23:23:00Z",
         "2014-06-23",
       ];
-      var updated = vectorDb.execute(updateSql, arguments);
+      var updated = vectorDb.execute(updateSql, arguments: arguments);
       expect(updated, 1);
 
       result = vectorDb.select(sql);
