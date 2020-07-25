@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:dart_hydrologis_utils/dart_hydrologis_utils.dart';
 import 'package:dart_jts/dart_jts.dart';
 import 'package:flutter_geopackage/com/hydrologis/flutter_geopackage/core/queries.dart';
 import 'package:flutter_geopackage/flutter_geopackage.dart';
@@ -302,6 +303,28 @@ void main() {
       expect(dateTimeField, "2014-06-23T23:23:00Z");
       expect(dateField, "2014-06-23");
       expect(binaryField.length, 3);
+    });
+
+    test("test_style_io", () {
+      String point2DTable = "point2d";
+      String line2DTable = "linestring2d";
+      String polygon2DTable = "polygon2d";
+
+      var pointSld = vectorDb.getSld(point2DTable);
+      expect(pointSld, null);
+      PointStyle pointStyle1 = PointStyle();
+      String sldString = SldObjectBuilder("point2d")
+          .addFeatureTypeStyle("fts1")
+          .addRule("rule1")
+          .addPointSymbolizer(pointStyle1)
+          .build();
+      vectorDb.updateSld(point2DTable, sldString);
+      pointSld = vectorDb.getSld(point2DTable);
+      var parser = SldObjectParser.fromString(pointSld);
+      parser.parse();
+      var pointStyle2 = parser
+          .featureTypeStyles.first.rules.first.pointSymbolizers.first.style;
+      expect(pointStyle1, pointStyle2);
     });
   });
   group("Geopackage Rasters - ", () {

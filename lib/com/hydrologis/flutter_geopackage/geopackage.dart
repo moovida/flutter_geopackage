@@ -828,6 +828,9 @@ class GeopackageDb {
     ]);
   }
 
+  /// Get the basic style for a table.
+  ///
+  /// This should not be used, since there is sld support. Use [getSld(tableName)].
   BasicStyle getBasicStyle(String tableName) {
     checkStyleTable();
     String sql = "select simplified from " +
@@ -845,6 +848,40 @@ class GeopackageDb {
     return style;
   }
 
+  /// Get the SLD xml for a given table.
+  String getSld(String tableName) {
+    checkStyleTable();
+    String sql = "select sld from " +
+        HM_STYLES_TABLE +
+        " where lower(tablename)='" +
+        tableName.toLowerCase() +
+        "'";
+    var res = _sqliteDb.select(sql);
+    if (res.length == 1) {
+      var row = res.first;
+      String sldString = row['sld'];
+      return sldString;
+    }
+    return null;
+  }
+
+  /// Update the sld string in the geopackage
+  void updateSld(String tableName, String sldString) {
+    checkStyleTable();
+    String sql = """update $HM_STYLES_TABLE 
+        set sld=? where lower(tablename)='${tableName.toLowerCase()}'
+        """;
+    var updated = _sqliteDb.execute(sql, arguments: [sldString]);
+    if (updated == 0) {
+      // need to insert
+      String sql = """insert into $HM_STYLES_TABLE 
+      (tablename, sld) values
+        ('${tableName}', ?);
+        """;
+      _sqliteDb.execute(sql, arguments: [sldString]);
+    }
+  }
+
   void checkStyleTable() {
     if (!_sqliteDb.hasTable(HM_STYLES_TABLE)) {
       var createTablesQuery = '''
@@ -853,7 +890,7 @@ class GeopackageDb {
         sld TEXT,
         simplified TEXT
       );
-      CREATE INDEX ${HM_STYLES_TABLE}_tablename_idx ON $HM_STYLES_TABLE (tablename);
+      CREATE UNIQUE INDEX ${HM_STYLES_TABLE}_tablename_idx ON $HM_STYLES_TABLE (tablename);
     ''';
       var split = createTablesQuery.replaceAll("\n", "").trim().split(";");
       for (int i = 0; i < split.length; i++) {
