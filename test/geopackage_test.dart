@@ -307,8 +307,6 @@ void main() {
 
     test("test_style_io", () {
       String point2DTable = "point2d";
-      String line2DTable = "linestring2d";
-      String polygon2DTable = "polygon2d";
 
       var pointSld = vectorDb.getSld(point2DTable);
       expect(pointSld, null);
