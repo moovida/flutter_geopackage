@@ -112,7 +112,7 @@ packages:
       name: dart_jts
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "0.0.5+5"
+    version: "0.0.5+6"
   ffi:
     dependency: transitive
     description:

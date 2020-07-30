@@ -1,6 +1,6 @@
 name: flutter_geopackage
 description: A module to support OGC geopackage with sqlite.
-version: 0.2.1
+version: 0.2.1+1
 homepage: https://github.com/moovida/flutter_geopackage
 repository: https://github.com/moovida/flutter_geopackage
 issue_tracker: https://github.com/moovida/flutter_geopackage/issues
@@ -16,7 +16,7 @@ dependencies:
     #  git:
     #    url: https://github.com/moovida/dart_hydrologis_db.git
 
-  dart_jts: ^0.0.5+4
+  dart_jts: ^0.0.5+6
 #    git:
 #      url: https://github.com/moovida/dart_jts.git
 
