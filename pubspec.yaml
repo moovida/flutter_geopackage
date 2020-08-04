@@ -1,6 +1,6 @@
 name: flutter_geopackage
 description: A module to support OGC geopackage with sqlite.
-version: 0.2.1+1
+version: 0.2.1+2
 homepage: https://github.com/moovida/flutter_geopackage
 repository: https://github.com/moovida/flutter_geopackage
 issue_tracker: https://github.com/moovida/flutter_geopackage/issues
