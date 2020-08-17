@@ -1,3 +1,7 @@
+# Version 0.2.2
+
+Migrate from moor
+
 # Version 0.2.1
 
 Expose API to get and update style table for vectors with SLD.
