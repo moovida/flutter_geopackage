@@ -991,25 +991,88 @@ class GeopackageDb {
   }
 
   void createFunctions() {
-    var moorDb = _sqliteDb.getInternalDb();
-    moorDb.createFunction('ST_MinX', 1, Pointer.fromFunction(minxFunction),
-        isDeterministic: true, directOnly: false);
-    moorDb.createFunction('ST_MaxX', 1, Pointer.fromFunction(maxxFunction),
-        isDeterministic: true, directOnly: false);
-    moorDb.createFunction('ST_MinY', 1, Pointer.fromFunction(minyFunction),
-        isDeterministic: true, directOnly: false);
-    moorDb.createFunction('ST_MaxY', 1, Pointer.fromFunction(maxyFunction),
-        isDeterministic: true, directOnly: false);
-    moorDb.createFunction(
-        'ST_IsEmpty', 1, Pointer.fromFunction(isEmptyFunction),
-        isDeterministic: true, directOnly: false);
+    _sqliteDb.createFunction(
+        functionName: 'ST_MinX',
+        function: (args) {
+          final value = args[0];
+          if (value is List<int>) {
+            var minX = GeoPkgGeomReader(value).getEnvelope().getMinX();
+            return minX;
+          } else {
+            return null;
+          }
+        },
+        argumentCount: 1,
+        deterministic: false,
+        directOnly: false);
+    _sqliteDb.createFunction(
+        functionName: 'ST_MaxX',
+        function: (args) {
+          final value = args[0];
+          if (value is List<int>) {
+            var maxX = GeoPkgGeomReader(value).getEnvelope().getMaxX();
+            return maxX;
+          } else {
+            return null;
+          }
+        },
+        argumentCount: 1,
+        deterministic: false,
+        directOnly: false);
+    _sqliteDb.createFunction(
+        functionName: 'ST_MinY',
+        function: (args) {
+          final value = args[0];
+          if (value is List<int>) {
+            var minY = GeoPkgGeomReader(value).getEnvelope().getMinY();
+            return minY;
+          } else {
+            return null;
+          }
+        },
+        argumentCount: 1,
+        deterministic: false,
+        directOnly: false);
+    _sqliteDb.createFunction(
+        functionName: 'ST_MaxY',
+        function: (args) {
+          final value = args[0];
+          if (value is List<int>) {
+            var maxY = GeoPkgGeomReader(value).getEnvelope().getMaxY();
+            return maxY;
+          } else {
+            return null;
+          }
+        },
+        argumentCount: 1,
+        deterministic: false,
+        directOnly: false);
+    _sqliteDb.createFunction(
+        functionName: 'ST_IsEmpty',
+        function: (args) {
+          final value = args[0];
+          if (value is List<int>) {
+            Geometry geom = GeoPkgGeomReader(value).get();
+            return geom.isEmpty();
+          } else {
+            return null;
+          }
+        },
+        argumentCount: 1,
+        deterministic: false,
+        directOnly: false);
 
-    // DbFunctionsCreator fc = DbFunctionsCreator(_sqliteDb);
-    // fc.createFunction("ST_MinX", 1, minxFunction);
-    // fc.createFunction("ST_MaxX", 1, maxxFunction);
-    // fc.createFunction("ST_MinY", 1, minyFunction);
-    // fc.createFunction("ST_MaxY", 1, maxyFunction);
-    // fc.createFunction("ST_IsEmpty", 1, isEmptyFunction);
+    // moorDb.createFunction('ST_MinX', 1, Pointer.fromFunction(minxFunction),
+    //     isDeterministic: true, directOnly: false);
+    // moorDb.createFunction('ST_MaxX', 1, Pointer.fromFunction(maxxFunction),
+    //     isDeterministic: true, directOnly: false);
+    // moorDb.createFunction('ST_MinY', 1, Pointer.fromFunction(minyFunction),
+    //     isDeterministic: true, directOnly: false);
+    // moorDb.createFunction('ST_MaxY', 1, Pointer.fromFunction(maxyFunction),
+    //     isDeterministic: true, directOnly: false);
+    // moorDb.createFunction(
+    //     'ST_IsEmpty', 1, Pointer.fromFunction(isEmptyFunction),
+    //     isDeterministic: true, directOnly: false);
   }
 }
 

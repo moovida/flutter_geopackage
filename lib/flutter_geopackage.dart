@@ -11,7 +11,7 @@ import 'package:intl/intl.dart';
 import "dart:math" as math;
 import 'package:dart_jts/dart_jts.dart';
 import 'package:dart_hydrologis_db/dart_hydrologis_db.dart';
-import 'package:moor_ffi/database.dart';
+import 'package:sqlite3/sqlite3.dart';
 
 part 'com/hydrologis/flutter_geopackage/core/geom.dart';
 part 'com/hydrologis/flutter_geopackage/core/utils.dart';
