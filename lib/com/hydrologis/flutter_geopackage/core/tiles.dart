@@ -130,6 +130,9 @@ class TileMatrix {
   }
 }
 
+/// A class to fetch lazyly tiles.
+///
+/// If no zoomlevel is provided, the highest possible is used.
 class TilesFetcher {
   TileEntry tileEntry;
   String tableName;
@@ -210,16 +213,20 @@ class TilesFetcher {
 
   List<LazyGpkgTile> getAllLazyTiles(GeopackageDb db,
       {Function to4326BoundsConverter}) {
-    var env = Envelope(-180, 180, -90, 90);
+    var sql = """
+          select ${GeopackageDb.COL_TILES_TILE_COLUMN}, ${GeopackageDb.COL_TILES_TILE_ROW} 
+          from ${DbsUtilities.fixTableName(tableName)} 
+          where ${GeopackageDb.COL_TILES_ZOOM_LEVEL}=$zoomLevel
+        """;
+    var result = db.select(sql);
     List<LazyGpkgTile> tiles = [];
-    for (var x = 0; x < matrixWidth; x++) {
-      for (var y = 0; y < matrixHeight; y++) {
-        var lazyTile =
-            getLazyTile(db, x, y, to4326BoundsConverter: to4326BoundsConverter);
-        if (lazyTile != null && env.coversEnvelope(lazyTile.tileBoundsLatLong))
-          tiles.add(lazyTile);
-      }
-    }
+    result.forEach((row) {
+      var x = row[GeopackageDb.COL_TILES_TILE_COLUMN];
+      var y = row[GeopackageDb.COL_TILES_TILE_ROW];
+      var lazyTile =
+          getLazyTile(db, x, y, to4326BoundsConverter: to4326BoundsConverter);
+      if (lazyTile != null) tiles.add(lazyTile);
+    });
     return tiles;
   }
 }

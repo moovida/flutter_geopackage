@@ -1,3 +1,7 @@
+# Version 0.3.1
+
+Fixes in lazy loading tiles.
+
 # Version 0.3.0
 
 Add proj4dart to harmonize proj differences between metadata.
