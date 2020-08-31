@@ -184,7 +184,7 @@ class GeopackageDb {
   List<TileEntry> tiles() {
     String compat =
         forceRasterMobileCompatibility ? "and c.srs_id = $MERCATOR_SRID" : "";
-    String sql = """
+    var sql = """
     SELECT a.*, c.organization_coordsys_id, c.definition
     FROM $TABLE_TILE_MATRIX_SET a, $TABLE_SPATIAL_REF_SYS c
     WHERE a.srs_id = c.srs_id $compat
@@ -193,13 +193,23 @@ class GeopackageDb {
     var res = _sqliteDb.select(sql);
     List<TileEntry> contents = [];
     res.forEach((row) {
-      var tileEntry = createTileEntry(row);
+      var tableName = row["table_name"];
+      var cSql = """
+        SELECT  min_x, max_x,max_y,min_y,srs_id
+        FROM gpkg_contents
+        where  table_name=?
+      """;
+      var cRes = _sqliteDb.select(cSql, [tableName]);
+      var cRow = cRes.first;
+
+      var tileEntry = createTileEntry(row, cRow);
+
       contents.add(tileEntry);
     });
     return contents;
   }
 
-  TileEntry createTileEntry(dynamic row) {
+  TileEntry createTileEntry(dynamic row, dynamic cRow) {
     TileEntry e = new TileEntry();
     e.setIdentifier(row["identifier"]);
     e.setDescription(row["description"]);
@@ -212,8 +222,22 @@ class GeopackageDb {
       (row["min_y"] as num).toDouble(),
       (row["max_y"] as num).toDouble(),
     );
-    e.setBounds(matrixSetEnvelope);
+
     e.setTileMatrixSetBounds(matrixSetEnvelope);
+
+    int cSrid = (cRow["srs_id"] as num).toInt();
+    var bounds = new Envelope(
+      (cRow["min_x"] as num).toDouble(),
+      (cRow["max_x"] as num).toDouble(),
+      (cRow["min_y"] as num).toDouble(),
+      (cRow["max_y"] as num).toDouble(),
+    );
+    if (cSrid != srid) {
+      // need to reproject
+      bounds = Proj.transformEnvelope(PROJ.Projection("EPSG:$cSrid"),
+          PROJ.Projection("EPSG:$srid"), bounds);
+    }
+    e.setBounds(bounds);
 
     String sql = """
         SELECT *, exists(
@@ -264,7 +288,13 @@ class GeopackageDb {
 
     var res = _sqliteDb.select(sql, [name]);
     if (res.isNotEmpty) {
-      return createTileEntry(res.first);
+      var cSql = """
+        SELECT  min_x, max_x,max_y,min_y,srs_id
+        FROM gpkg_contents
+        where  table_name=?
+      """;
+      var cRes = _sqliteDb.select(cSql, [name]);
+      return createTileEntry(res.first, cRes.first);
     }
 
     return null;

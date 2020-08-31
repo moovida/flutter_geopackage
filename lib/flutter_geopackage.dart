@@ -11,6 +11,7 @@ import 'package:dart_hydrologis_db/dart_hydrologis_db.dart';
 import 'package:dart_jts/dart_jts.dart';
 import 'package:flutter_geopackage/com/hydrologis/flutter_geopackage/core/queries.dart';
 import 'package:intl/intl.dart';
+import 'package:proj4dart/proj4dart.dart' as PROJ;
 
 part 'com/hydrologis/flutter_geopackage/core/entries.dart';
 part 'com/hydrologis/flutter_geopackage/core/features.dart';

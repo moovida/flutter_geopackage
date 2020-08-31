@@ -138,3 +138,41 @@ class GeopackageTableNames {
     return tablesMap;
   }
 }
+
+class Proj {
+  static final PROJ.Projection EPSG4326 = PROJ.Projection.WGS84;
+  static final int EPSG4326_INT = 4326;
+  static final int EPSG3857_INT = 3857;
+  static final PROJ.Projection EPSG3857 = PROJ.Projection('EPSG:$EPSG3857_INT');
+
+  static PROJ.Projection fromSrid(int srid) {
+    if (srid == EPSG3857_INT) return EPSG3857;
+    if (srid == EPSG4326_INT) return EPSG4326;
+    var prj = PROJ.Projection("EPSG:$srid");
+    return prj;
+  }
+
+  static PROJ.Point transform(
+      PROJ.Projection from, PROJ.Projection to, PROJ.Point point) {
+    return from.transform(to, point);
+  }
+
+  static PROJ.Point transformToWgs84(PROJ.Projection from, PROJ.Point point) {
+    return from.transform(EPSG4326, point);
+  }
+
+  static Envelope transformEnvelope(
+      PROJ.Projection from, PROJ.Projection to, Envelope envelope) {
+    PROJ.Point ll = PROJ.Point(x: envelope.getMinX(), y: envelope.getMinY());
+    PROJ.Point ur = PROJ.Point(x: envelope.getMaxX(), y: envelope.getMaxY());
+    var newLL = from.transform(to, ll);
+    var newUR = from.transform(to, ur);
+    return Envelope.fromCoordinates(
+        Coordinate(newLL.x, newLL.y), Coordinate(newUR.x, newUR.y));
+  }
+
+  static Envelope transformEnvelopeToWgs84(
+      PROJ.Projection from, Envelope envelope) {
+    return transformEnvelope(from, EPSG4326, envelope);
+  }
+}

@@ -416,5 +416,25 @@ void main() {
       tile.fetch();
       expect(tile.tileImageBytes != null, false);
     });
+
+    test("test dataset bounds", () {
+      List<TileEntry> entryList = rasterDb.tiles();
+      expect(entryList.length, 1);
+
+      var entry = entryList.first;
+      expect(entry.srid, 3857);
+
+      var bounds = entry.bounds;
+
+      var minX = -2.0037508342789244E7;
+      var minY = -2.0037508342789244E7;
+      var maxX = 2.0037508342789244E7;
+      var maxY = 2.0037508342789244E7;
+
+      expect(minX.round(), bounds.getMinX().round());
+      expect(minY.round(), bounds.getMinY().round());
+      expect(maxX.round(), bounds.getMaxX().round());
+      expect(maxY.round(), bounds.getMaxY().round());
+    });
   });
 }
