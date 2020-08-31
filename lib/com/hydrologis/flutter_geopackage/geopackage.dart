@@ -185,31 +185,24 @@ class GeopackageDb {
     String compat =
         forceRasterMobileCompatibility ? "and c.srs_id = $MERCATOR_SRID" : "";
     var sql = """
-    SELECT a.*, c.organization_coordsys_id, c.definition
-    FROM $TABLE_TILE_MATRIX_SET a, $TABLE_SPATIAL_REF_SYS c
-    WHERE a.srs_id = c.srs_id $compat
+    SELECT a.*, c.organization_coordsys_id, c.definition, g.min_x as gmin_x, g.max_x as gmax_x, g.min_y as gmin_y, g.max_y as gmax_y, g.srs_id as gsrs_id
+    FROM $TABLE_TILE_MATRIX_SET a, $TABLE_SPATIAL_REF_SYS c, $TABLE_GEOPACKAGE_CONTENTS g
+    WHERE a.srs_id = c.srs_id 
+    AND a.table_name = g.table_name
+    $compat
     """;
 
     var res = _sqliteDb.select(sql);
     List<TileEntry> contents = [];
     res.forEach((row) {
-      var tableName = row["table_name"];
-      var cSql = """
-        SELECT  min_x, max_x,max_y,min_y,srs_id
-        FROM gpkg_contents
-        where  table_name=?
-      """;
-      var cRes = _sqliteDb.select(cSql, [tableName]);
-      var cRow = cRes.first;
-
-      var tileEntry = createTileEntry(row, cRow);
+      var tileEntry = createTileEntry(row);
 
       contents.add(tileEntry);
     });
     return contents;
   }
 
-  TileEntry createTileEntry(dynamic row, dynamic cRow) {
+  TileEntry createTileEntry(dynamic row) {
     TileEntry e = new TileEntry();
     e.setIdentifier(row["identifier"]);
     e.setDescription(row["description"]);
@@ -225,12 +218,12 @@ class GeopackageDb {
 
     e.setTileMatrixSetBounds(matrixSetEnvelope);
 
-    int cSrid = (cRow["srs_id"] as num).toInt();
+    int cSrid = (row["gsrs_id"] as num).toInt();
     var bounds = new Envelope(
-      (cRow["min_x"] as num).toDouble(),
-      (cRow["max_x"] as num).toDouble(),
-      (cRow["min_y"] as num).toDouble(),
-      (cRow["max_y"] as num).toDouble(),
+      (row["gmin_x"] as num).toDouble(),
+      (row["gmax_x"] as num).toDouble(),
+      (row["gmin_y"] as num).toDouble(),
+      (row["gmax_y"] as num).toDouble(),
     );
     if (cSrid != srid) {
       // need to reproject
@@ -281,20 +274,16 @@ class GeopackageDb {
     String compat =
         forceRasterMobileCompatibility ? "and c.srs_id=$MERCATOR_SRID" : "";
     String sql = """
-      SELECT a.*, c.organization_coordsys_id, c.definition
-      FROM $TABLE_TILE_MATRIX_SET a, $TABLE_SPATIAL_REF_SYS c
-      WHERE a.srs_id = c.srs_id $compat AND Lower(a.table_name) = Lower(?)
+      SELECT a.*, c.organization_coordsys_id, c.definition, g.min_x as gmin_x, g.max_x as gmax_x, g.min_y as gmin_y, g.max_y as gmax_y, g.srs_id as gsrs_id
+      FROM $TABLE_TILE_MATRIX_SET a, $TABLE_SPATIAL_REF_SYS c, $TABLE_GEOPACKAGE_CONTENTS g
+      WHERE a.srs_id = c.srs_id $compat 
+      AND a.table_name = g.table_name
+      AND Lower(a.table_name) = Lower(?)
       """;
 
     var res = _sqliteDb.select(sql, [name]);
     if (res.isNotEmpty) {
-      var cSql = """
-        SELECT  min_x, max_x,max_y,min_y,srs_id
-        FROM gpkg_contents
-        where  table_name=?
-      """;
-      var cRes = _sqliteDb.select(cSql, [name]);
-      return createTileEntry(res.first, cRes.first);
+      return createTileEntry(res.first);
     }
 
     return null;

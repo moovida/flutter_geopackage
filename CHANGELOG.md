@@ -1,3 +1,7 @@
+# Version 0.3.0
+
+Add proj4dart to harmonize proj differences between metadata.
+
 # Version 0.2.2
 
 Migrate from moor
