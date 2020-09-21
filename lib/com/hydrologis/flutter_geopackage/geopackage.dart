@@ -206,7 +206,7 @@ class GeopackageDb {
     TileEntry e = new TileEntry();
     e.setIdentifier(row["identifier"]);
     e.setDescription(row["description"]);
-    e.setTableName(row["table_name"]);
+    e.setTableName(SqlName(row["table_name"]));
     int srid = (row["srs_id"] as num).toInt();
     e.setSrid(srid);
     var matrixSetEnvelope = new Envelope(
@@ -315,7 +315,7 @@ class GeopackageDb {
     FeatureEntry e = new FeatureEntry();
     e.setIdentifier(rs["identifier"]);
     e.setDescription(rs["description"]);
-    e.setTableName(rs["table_name"]);
+    e.setTableName(SqlName(rs["table_name"]));
 //    try {
 //      ISO8601_TS_FORMATTER.setTimeZone(TimeZone.getTimeZone("GMT"));
 //      e.setLastChange(ISO8601_TS_FORMATTER.parse(rs.getString("last_change")));
