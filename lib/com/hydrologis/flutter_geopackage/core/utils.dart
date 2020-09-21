@@ -27,7 +27,7 @@ class QueryResult {
 /// Class representing a geometry_columns record.
 class GeometryColumn {
   // VARIABLES
-  String tableName;
+  SqlName tableName;
   String geometryColumnName;
 
   /// The type, as compatible with {@link EGeometryType#fromGeometryTypeCode(int)} and {@link ESpatialiteGeometryType#forValue(int)}.
@@ -111,13 +111,13 @@ class GeopackageTableNames {
   /// @param doSort if <code>true</code>, table names are alphabetically sorted.
   /// @return the {@link LinkedHashMap}.
   static Map<String, List<String>> getTablesSorted(
-      List<String> allTableNames, bool doSort) {
+      List<SqlName> allTableNames, bool doSort) {
     Map<String, List<String>> tablesMap = {};
     tablesMap[USERDATA] = [];
     tablesMap[SYSTEM] = [];
 
-    for (String tableName in allTableNames) {
-      tableName = tableName.toLowerCase();
+    for (SqlName name in allTableNames) {
+      var tableName = name.name.toLowerCase();
       if (tableName.startsWith(startsWithIndexTables) ||
           metadataTables.contains(tableName) ||
           internalDataTables.contains(tableName)) {

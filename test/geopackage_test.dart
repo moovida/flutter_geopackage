@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:dart_hydrologis_utils/dart_hydrologis_utils.dart';
+import 'package:dart_hydrologis_db/dart_hydrologis_db.dart';
 import 'package:dart_jts/dart_jts.dart';
 import 'package:flutter_geopackage/com/hydrologis/flutter_geopackage/core/queries.dart';
 import 'package:flutter_geopackage/flutter_geopackage.dart';
@@ -39,16 +40,16 @@ void main() {
       try {
         db.openOrCreate();
 
-        expect(db.hasTable(TABLE_GEOPACKAGE_CONTENTS), true);
-        expect(db.hasTable(TABLE_SPATIAL_REF_SYS), true);
-        expect(db.hasTable(TABLE_DATA_COLUMN_CONSTRAINTS), true);
-        expect(db.hasTable(TABLE_DATA_COLUMNS), true);
-        expect(db.hasTable(TABLE_EXTENSIONS), true);
-        expect(db.hasTable(TABLE_GEOMETRY_COLUMNS), true);
-        expect(db.hasTable(TABLE_METADATA_REFERENCE), true);
-        expect(db.hasTable(TABLE_METADATA), true);
-        expect(db.hasTable(TABLE_TILE_MATRIX_SET), true);
-        expect(db.hasTable(TABLE_TILE_MATRIX_METADATA), true);
+        expect(db.hasTable(SqlName(TABLE_GEOPACKAGE_CONTENTS)), true);
+        expect(db.hasTable(SqlName(TABLE_SPATIAL_REF_SYS)), true);
+        expect(db.hasTable(SqlName(TABLE_DATA_COLUMN_CONSTRAINTS)), true);
+        expect(db.hasTable(SqlName(TABLE_DATA_COLUMNS)), true);
+        expect(db.hasTable(SqlName(TABLE_EXTENSIONS)), true);
+        expect(db.hasTable(SqlName(TABLE_GEOMETRY_COLUMNS)), true);
+        expect(db.hasTable(SqlName(TABLE_METADATA_REFERENCE)), true);
+        expect(db.hasTable(SqlName(TABLE_METADATA)), true);
+        expect(db.hasTable(SqlName(TABLE_TILE_MATRIX_SET)), true);
+        expect(db.hasTable(SqlName(TABLE_TILE_MATRIX_METADATA)), true);
       } finally {
         db.close();
       }
@@ -58,8 +59,9 @@ void main() {
       try {
         db.openOrCreate();
 
+        var t1Name = SqlName("table1");
         db.createSpatialTable(
-          "table1",
+          t1Name,
           4326,
           "the_geom POINT",
           [
@@ -70,8 +72,8 @@ void main() {
           false,
         );
 
-        expect(db.hasTable("table1"), true);
-        expect(db.hasSpatialIndex("table1"), true);
+        expect(db.hasTable(t1Name), true);
+        expect(db.hasSpatialIndex(t1Name), true);
 
         var result =
             db.select("select name from sqlite_master where type = 'trigger';");
@@ -85,14 +87,15 @@ void main() {
         var point3 = gf.createPoint(Coordinate(100.0, 100.0));
         var geomBytes3 = GeoPkgGeomWriter().write(point3);
 
-        var sql = "INSERT INTO table1 (the_geom, name) VALUES (?,?);";
+        var sql =
+            "INSERT INTO ${t1Name.fixedName} (the_geom, name) VALUES (?,?);";
 
         db.execute(sql, arguments: [geomBytes1, 'the one']);
         db.execute(sql, arguments: [geomBytes2, 'the two']);
         db.execute(sql, arguments: [geomBytes3, 'the three']);
 
         var geometries =
-            db.getGeometriesIn("table1", envelope: Envelope(0, 1.5, 0, 1.5));
+            db.getGeometriesIn(t1Name, envelope: Envelope(0, 1.5, 0, 1.5));
         expect(geometries.length, 1);
         expect(geometries.first.distance(point1), 0);
 
@@ -104,11 +107,11 @@ void main() {
           'name': 'updated two',
           'the_geom': geomBytes1,
         };
-        var changed = db.updateMap("table1", newRow, "id=${row['id']}");
+        var changed = db.updateMap(t1Name, newRow, "id=${row['id']}");
         expect(changed, 1);
 
         geometries =
-            db.getGeometriesIn("table1", envelope: Envelope(0, 1.5, 0, 1.5));
+            db.getGeometriesIn(t1Name, envelope: Envelope(0, 1.5, 0, 1.5));
         expect(geometries.length, 2);
       } finally {
         db.close();
@@ -127,7 +130,7 @@ void main() {
       expect(tables.length, 16);
     });
     test("test2dPointTable", () {
-      String point2DTable = "point2d";
+      var point2DTable = SqlName("point2d");
       bool hasSpatialIndex = vectorDb.hasSpatialIndex(point2DTable);
 
       GeometryColumn geometryColumn =
@@ -144,7 +147,7 @@ void main() {
     });
 
     test("test2dLineStringTable", () {
-      String line2DTable = "linestring2d";
+      var line2DTable = SqlName("linestring2d");
       bool hasSpatialIndex = vectorDb.hasSpatialIndex(line2DTable);
       GeometryColumn geometryColumn =
           vectorDb.getGeometryColumnsForTable(line2DTable);
@@ -159,7 +162,7 @@ void main() {
     });
 
     test("test2dPolygonTable", () {
-      String polygon2DTable = "polygon2d";
+      var polygon2DTable = SqlName("polygon2d");
       bool hasSpatialIndex = vectorDb.hasSpatialIndex(polygon2DTable);
       GeometryColumn geometryColumn =
           vectorDb.getGeometryColumnsForTable(polygon2DTable);
@@ -175,7 +178,7 @@ void main() {
     });
 
     test("test2dMultiPointTable", () {
-      String multipoint2DTable = "multipoint2d";
+      var multipoint2DTable = SqlName("multipoint2d");
       bool hasSpatialIndex = vectorDb.hasSpatialIndex(multipoint2DTable);
       List<Geometry> geometries = vectorDb.getGeometriesIn(multipoint2DTable);
       geometries.removeWhere((g) => g == null);
@@ -186,7 +189,7 @@ void main() {
     });
 
     test("test_geomcollection2d_bounds_geom_queries", () {
-      String geomcollection2DTable = "geomcollection2d";
+      var geomcollection2DTable = SqlName("geomcollection2d");
       bool hasSpatialIndex = vectorDb.hasSpatialIndex(geomcollection2DTable);
       expect(hasSpatialIndex, true);
 
@@ -211,7 +214,7 @@ void main() {
     });
 
     test("test3dPointTable", () {
-      String point3DTable = "point3d";
+      var point3DTable = SqlName("point3d");
       bool hasSpatialIndex = vectorDb.hasSpatialIndex(point3DTable);
 
       List<Geometry> geometries = vectorDb.getGeometriesIn(point3DTable);
@@ -366,7 +369,7 @@ void main() {
       });
     });
     test("testGetTile", () {
-      List<int> tileBytes = rasterDb.getTile('tiles', 0, 0, 1);
+      List<int> tileBytes = rasterDb.getTile(SqlName('tiles'), 0, 0, 1);
       expect(tileBytes.length, 3231);
     });
   });

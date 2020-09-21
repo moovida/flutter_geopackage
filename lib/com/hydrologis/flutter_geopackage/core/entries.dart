@@ -25,18 +25,18 @@ class DataType {
 ///
 /// @author Justin Deoliveira, OpenGeo
 class Entry {
-  String tableName;
+  SqlName tableName;
   DataType dataType;
   String identifier;
   String description;
   Envelope bounds;
   int srid;
 
-  String getTableName() {
+  SqlName getTableName() {
     return tableName;
   }
 
-  void setTableName(String tableName) {
+  void setTableName(SqlName tableName) {
     this.tableName = tableName;
   }
 

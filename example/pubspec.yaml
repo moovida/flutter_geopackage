@@ -37,7 +37,7 @@ dependencies:
     path: ../../flutter_geopackage
 
   # MIT
-  proj4dart: 1.0.4
+  proj4dart: 1.0.5
 
   dart_jts: ^0.0.5+1
 #    git:

@@ -135,7 +135,7 @@ class TileMatrix {
 /// If no zoomlevel is provided, the highest possible is used.
 class TilesFetcher {
   TileEntry tileEntry;
-  String tableName;
+  SqlName tableName;
   int zoomLevel;
   List<TileMatrix> tileMatricies;
 
@@ -215,7 +215,7 @@ class TilesFetcher {
       {Function to4326BoundsConverter}) {
     var sql = """
           select ${GeopackageDb.COL_TILES_TILE_COLUMN}, ${GeopackageDb.COL_TILES_TILE_ROW} 
-          from ${DbsUtilities.fixTableName(tableName)} 
+          from ${tableName.fixedName} 
           where ${GeopackageDb.COL_TILES_ZOOM_LEVEL}=$zoomLevel
         """;
     var result = db.select(sql);
@@ -233,7 +233,7 @@ class TilesFetcher {
 
 /// A lazy loading geopackage tile.
 class LazyGpkgTile {
-  String tableName;
+  SqlName tableName;
   Envelope tileBoundsLatLong;
 
   int xTile;
