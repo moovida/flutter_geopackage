@@ -1,3 +1,7 @@
+# Version 0.4.0
+
+Upgrade to use new SqlName API from db library dependency.
+
 # Version 0.3.1
 
 Fixes in lazy loading tiles.
