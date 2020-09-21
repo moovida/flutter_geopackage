@@ -901,7 +901,7 @@ class GeopackageDb {
       // need to insert
       String sql = """insert into $HM_STYLES_TABLE 
       (tablename, sld) values
-        ('${tableName}', ?);
+        ('$name', ?);
         """;
       _sqliteDb.execute(sql, arguments: [sldString]);
     }
