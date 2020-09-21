@@ -309,7 +309,7 @@ void main() {
     });
 
     test("test_style_io", () {
-      String point2DTable = "point2d";
+      var point2DTable = SqlName("point2d");
 
       var pointSld = vectorDb.getSld(point2DTable);
       expect(pointSld, null);
@@ -340,7 +340,7 @@ void main() {
     });
 
     test("testTileSettings", () {
-      TileEntry entry = rasterDb.tile('tiles');
+      TileEntry entry = rasterDb.tile(SqlName('tiles'));
       List<TileMatrix> tileMatricies = entry.getTileMatricies();
       expect(tileMatricies.length, 5);
       tileMatricies.forEach((tm) {
@@ -376,7 +376,7 @@ void main() {
 
   group("Geopackage Free Tiles Tests - ", () {
     test("test bounds", () {
-      TileEntry entry = earth4326Db.tile('clouds');
+      TileEntry entry = earth4326Db.tile(SqlName('clouds'));
       TilesFetcher fetcher = TilesFetcher(entry);
       var tile = fetcher.getLazyTile(earth4326Db, 0, 0);
       expect(tile.tileBoundsLatLong.getMinX(), -180);
@@ -403,7 +403,7 @@ void main() {
     });
 
     test("test tile fetching", () {
-      TileEntry entry = earth4326Db.tile('clouds');
+      TileEntry entry = earth4326Db.tile(SqlName('clouds'));
       TilesFetcher fetcher = TilesFetcher(entry);
 
       var tile = fetcher.getLazyTile(earth4326Db, 0, 0);

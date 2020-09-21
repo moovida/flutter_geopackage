@@ -267,7 +267,7 @@ class GeopackageDb {
   ///
   /// @param name THe name of the tile entry.
   /// @return The entry, or <code>null</code> if no such entry exists.
-  TileEntry tile(String name) {
+  TileEntry tile(SqlName name) {
     if (!_sqliteDb.hasTable(SqlName(TABLE_GEOMETRY_COLUMNS))) {
       return null;
     }
@@ -281,7 +281,7 @@ class GeopackageDb {
       AND Lower(a.table_name) = Lower(?)
       """;
 
-    var res = _sqliteDb.select(sql, [name]);
+    var res = _sqliteDb.select(sql, [name.fixedName]);
     if (res.isNotEmpty) {
       return createTileEntry(res.first);
     }
@@ -465,7 +465,7 @@ class GeopackageDb {
     }
   }
 
-  Envelope getTableBounds(String tableName) {
+  Envelope getTableBounds(SqlName tableName) {
 // TODO
     throw new RuntimeException("Not implemented yet...");
   }
@@ -852,12 +852,13 @@ class GeopackageDb {
   /// Get the basic style for a table.
   ///
   /// This should not be used, since there is sld support. Use [getSld(tableName)].
-  BasicStyle getBasicStyle(String tableName) {
+  BasicStyle getBasicStyle(SqlName tableName) {
     checkStyleTable();
+    String name = tableName.name.toLowerCase();
     String sql = "select simplified from " +
         HM_STYLES_TABLE +
         " where lower(tablename)='" +
-        tableName.toLowerCase() +
+        name +
         "'";
     var res = _sqliteDb.select(sql);
     BasicStyle style = BasicStyle();
@@ -870,12 +871,13 @@ class GeopackageDb {
   }
 
   /// Get the SLD xml for a given table.
-  String getSld(String tableName) {
+  String getSld(SqlName tableName) {
     checkStyleTable();
+    String name = tableName.name.toLowerCase();
     String sql = "select sld from " +
         HM_STYLES_TABLE +
         " where lower(tablename)='" +
-        tableName.toLowerCase() +
+        name +
         "'";
     var res = _sqliteDb.select(sql);
     if (res.length == 1) {
@@ -887,10 +889,12 @@ class GeopackageDb {
   }
 
   /// Update the sld string in the geopackage
-  void updateSld(String tableName, String sldString) {
+  void updateSld(SqlName tableName, String sldString) {
     checkStyleTable();
+
+    String name = tableName.name.toLowerCase();
     String sql = """update $HM_STYLES_TABLE 
-        set sld=? where lower(tablename)='${tableName.toLowerCase()}'
+        set sld=? where lower(tablename)='$name'
         """;
     var updated = _sqliteDb.execute(sql, arguments: [sldString]);
     if (updated == 0) {
