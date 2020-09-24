@@ -252,19 +252,19 @@ class LazyGpkgTile {
 
   @override
   String toString() {
-    return "Tile of $tableName: x=$xTile, y=$yTile, z=$zoomLevel, loaded=${tileImageBytes != null}";
+    return "Tile of ${tableName.name}: x=$xTile, y=$yTile, z=$zoomLevel, loaded=${tileImageBytes != null}";
   }
 
   @override
   bool operator ==(Object other) =>
       other is LazyGpkgTile &&
-      other.tableName == tableName &&
+      other.tableName.name == tableName.name &&
       other.xTile == xTile &&
       other.yTile == yTile &&
       other.zoomLevel == zoomLevel;
 
   @override
-  int get hashCode => hashObjects([tableName, xTile, yTile, zoomLevel]);
+  int get hashCode => hashObjects([tableName.name, xTile, yTile, zoomLevel]);
 }
 
 /// Generates a hash code for multiple [objects].
