@@ -657,7 +657,7 @@ class GeopackageDb {
   }
 
   QueryResult getTableData(SqlName tableName,
-      {Envelope envelope, Geometry geometry, int limit}) {
+      {Envelope envelope, Geometry geometry, String where, int limit}) {
     QueryResult queryResult = new QueryResult();
 
     GeometryColumn geometryColumn = getGeometryColumnsForTable(tableName);
@@ -669,6 +669,7 @@ class GeopackageDb {
       throw ArgumentError("Only one of envelope and geometry have to be set.");
     }
 
+    List<String> wheresList = [];
     if (envelope != null) {
       double x1 = envelope.getMinX();
       double y1 = envelope.getMinY();
@@ -677,16 +678,25 @@ class GeopackageDb {
       String spatialindexBBoxWherePiece =
           getSpatialindexBBoxWherePiece(tableName, null, x1, y1, x2, y2);
       if (spatialindexBBoxWherePiece != null) {
-        sql += " WHERE " + spatialindexBBoxWherePiece;
+        wheresList.add(spatialindexBBoxWherePiece);
       }
     }
     if (geometry != null) {
-      String spatialindexBBoxWherePiece =
+      String spatialindexGeometryWherePiece =
           getSpatialindexGeometryWherePiece(tableName, null, geometry);
-      if (spatialindexBBoxWherePiece != null) {
-        sql += " WHERE " + spatialindexBBoxWherePiece;
+      if (spatialindexGeometryWherePiece != null) {
+        wheresList.add(spatialindexGeometryWherePiece);
       }
     }
+    if (where != null) {
+      wheresList.add(where);
+    }
+
+    if (wheresList.isNotEmpty) {
+      var wheresString = wheresList.join(" AND ");
+      sql += " WHERE " + wheresString;
+    }
+
     bool hasBoundsfilter = envelope != null || geometry != null;
 
     if (limit != null) {

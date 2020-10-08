@@ -1,3 +1,4 @@
+import 'package:dart_hydrologis_db/dart_hydrologis_db.dart';
 import 'package:dart_jts/dart_jts.dart' as JTS;
 import 'package:flutter/material.dart';
 import 'package:flutter_geopackage/flutter_geopackage.dart';
@@ -80,17 +81,18 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
     earthDb.forceRasterMobileCompatibility = false;
 
     // load tiles
-    var cloudsTileEntry = earthDb.tile("clouds");
+    var cloudsTileEntry = earthDb.tile(SqlName("clouds"));
     TilesFetcher cloudsFetcher = TilesFetcher(cloudsTileEntry);
     allLazy4326Tiles = cloudsFetcher.getAllLazyTiles(earthDb);
 
     // load places
     var dataEnv = JTS.Envelope(-9, 22, 35, 63);
-    placesGeoms = earthDb.getGeometriesIn("places",
+    placesGeoms = earthDb.getGeometriesIn(SqlName("places"),
         userDataField: "name", envelope: dataEnv);
 
     // load countries
-    countriesGeoms = earthDb.getGeometriesIn("countries", envelope: dataEnv);
+    countriesGeoms =
+        earthDb.getGeometriesIn(SqlName("countries"), envelope: dataEnv);
 
     var earthLigthsDb = ch.open(earthLightsPath);
     earthLigthsDb.forceRasterMobileCompatibility = false;
@@ -98,7 +100,7 @@ class _GeopackageTestViewState extends State<GeopackageTestView> {
     PRJ.Projection tmerc = PRJ.Projection("EPSG:3857");
     PRJ.Projection wgs84 = PRJ.Projection.WGS84;
 
-    var lightsTileEntry = earthLigthsDb.tile("lights");
+    var lightsTileEntry = earthLigthsDb.tile(SqlName("lights"));
     TilesFetcher lightsFetcher = TilesFetcher(lightsTileEntry);
 
     allLazy3857Tiles = lightsFetcher.getAllLazyTiles(earthLigthsDb,

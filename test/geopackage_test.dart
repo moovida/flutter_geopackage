@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 
 import 'package:dart_hydrologis_utils/dart_hydrologis_utils.dart';
 import 'package:dart_hydrologis_db/dart_hydrologis_db.dart';
@@ -113,6 +114,11 @@ void main() {
         geometries =
             db.getGeometriesIn(t1Name, envelope: Envelope(0, 1.5, 0, 1.5));
         expect(geometries.length, 2);
+
+        var tableData = db.getTableData(t1Name, where: "name='updated two'");
+        expect(tableData.data.length, 1);
+        var geom = tableData.geoms[0];
+        expect(geom.equals(point1), true);
       } finally {
         db.close();
       }
