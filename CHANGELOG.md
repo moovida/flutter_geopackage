@@ -1,3 +1,7 @@
+# Version 0.4.1
+
+Add option to pass a "where" string to the getTableData method.
+
 # Version 0.4.0
 
 Upgrade to use new SqlName API from db library dependency.
