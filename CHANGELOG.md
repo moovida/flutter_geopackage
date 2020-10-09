@@ -1,4 +1,4 @@
-# Version 0.4.1
+# Version 0.4.2
 
 From db: add notnull to table column info.
 
