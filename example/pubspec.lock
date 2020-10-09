@@ -84,14 +84,14 @@ packages:
       name: dart_hydrologis_db
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "0.4.0+1"
+    version: "0.4.1"
   dart_jts:
     dependency: "direct main"
     description:
       name: dart_jts
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "0.0.5+6"
+    version: "0.0.6"
   fake_async:
     dependency: transitive
     description:
@@ -138,7 +138,7 @@ packages:
       path: ".."
       relative: true
     source: path
-    version: "0.4.0+1"
+    version: "0.4.1"
   flutter_image:
     dependency: transitive
     description:
@@ -248,7 +248,7 @@ packages:
       name: path_provider
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "1.6.16"
+    version: "1.6.18"
   path_provider_linux:
     dependency: transitive
     description:
@@ -276,7 +276,7 @@ packages:
       name: path_provider_windows
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "0.0.3"
+    version: "0.0.4+1"
   pedantic:
     dependency: transitive
     description:
@@ -311,7 +311,7 @@ packages:
       name: plugin_platform_interface
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "1.0.2"
+    version: "1.0.3"
   positioned_tap_detector:
     dependency: transitive
     description:
@@ -379,7 +379,7 @@ packages:
       name: sqlite3
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "0.1.5"
+    version: "0.1.6"
   stack_trace:
     dependency: transitive
     description:

@@ -642,7 +642,7 @@ class GeopackageDb {
     return _sqliteDb.hasTable(tableName);
   }
 
-  /// Get the [tableName] columns as array of name, type and isPrimaryKey.
+  /// Get the [tableName] columns as array of name, type, isPrimaryKey, notnull.
   List<List<dynamic>> getTableColumns(SqlName tableName) {
     return _sqliteDb.getTableColumns(tableName);
   }

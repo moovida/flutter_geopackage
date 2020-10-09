@@ -123,6 +123,37 @@ void main() {
         db.close();
       }
     });
+
+    test("test new table creation, insert default values", () {
+      var db = GeopackageDb.memory();
+      try {
+        db.openOrCreate();
+
+        var t1Name = SqlName("table1");
+        db.createSpatialTable(
+          t1Name,
+          4326,
+          "the_geom POINT",
+          [
+            "id INTEGER PRIMARY KEY AUTOINCREMENT",
+            "name TEXT",
+          ],
+          null,
+          false,
+        );
+        var sql = "INSERT INTO ${t1Name.fixedName} DEFAULT VALUES;";
+        db.execute(sql);
+
+        var select = db.select("Select * from ${t1Name.fixedName}");
+        expect(select.length, 1);
+        var row = select.first;
+        expect(row['id'], 1);
+        expect(row['name'] == null, true);
+        expect(row['the_geom'] == null, true);
+      } finally {
+        db.close();
+      }
+    });
   });
 
   group("Geopackage Vectors - ", () {
