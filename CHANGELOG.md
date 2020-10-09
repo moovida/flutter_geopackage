@@ -1,5 +1,9 @@
 # Version 0.4.1
 
+From db: add notnull to table column info.
+
+# Version 0.4.1
+
 Add option to pass a "where" string to the getTableData method.
 
 # Version 0.4.0
