@@ -281,7 +281,7 @@ class GeopackageDb {
       AND Lower(a.table_name) = Lower(?)
       """;
 
-    var res = _sqliteDb.select(sql, [name.fixedName]);
+    var res = _sqliteDb.select(sql, [name.name]);
     if (res.isNotEmpty) {
       return createTileEntry(res.first);
     }

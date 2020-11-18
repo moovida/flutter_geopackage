@@ -1,3 +1,7 @@
+# Version 0.4.2+1
+
+Fix in tiles entry bounds retrival in case of special name.
+
 # Version 0.4.2
 
 From db: add notnull to table column info.
