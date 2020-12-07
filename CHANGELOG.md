@@ -1,3 +1,7 @@
+# Version 0.4.3
+
+Upgrade to new db api.
+
 # Version 0.4.2+1
 
 Fix in tiles entry bounds retrival in case of special name.
