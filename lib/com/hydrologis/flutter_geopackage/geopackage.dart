@@ -202,28 +202,28 @@ class GeopackageDb {
     return contents;
   }
 
-  TileEntry createTileEntry(dynamic row) {
+  TileEntry createTileEntry(QueryResultRow row) {
     TileEntry e = new TileEntry();
-    e.setIdentifier(row["identifier"]);
-    e.setDescription(row["description"]);
-    e.setTableName(SqlName(row["table_name"]));
-    int srid = (row["srs_id"] as num).toInt();
+    e.setIdentifier(row.get("identifier"));
+    e.setDescription(row.get("description"));
+    e.setTableName(SqlName(row.get("table_name")));
+    int srid = (row.get("srs_id") as num).toInt();
     e.setSrid(srid);
     var matrixSetEnvelope = new Envelope(
-      (row["min_x"] as num).toDouble(),
-      (row["max_x"] as num).toDouble(),
-      (row["min_y"] as num).toDouble(),
-      (row["max_y"] as num).toDouble(),
+      (row.get("min_x") as num).toDouble(),
+      (row.get("max_x") as num).toDouble(),
+      (row.get("min_y") as num).toDouble(),
+      (row.get("max_y") as num).toDouble(),
     );
 
     e.setTileMatrixSetBounds(matrixSetEnvelope);
 
-    int cSrid = (row["gsrs_id"] as num).toInt();
+    int cSrid = (row.get("gsrs_id") as num).toInt();
     var bounds = new Envelope(
-      (row["gmin_x"] as num).toDouble(),
-      (row["gmax_x"] as num).toDouble(),
-      (row["gmin_y"] as num).toDouble(),
-      (row["gmax_y"] as num).toDouble(),
+      (row.get("gmin_x") as num).toDouble(),
+      (row.get("gmax_x") as num).toDouble(),
+      (row.get("gmin_y") as num).toDouble(),
+      (row.get("gmax_y") as num).toDouble(),
     );
     if (cSrid != srid) {
       // need to reproject
@@ -245,14 +245,14 @@ class GeopackageDb {
     // has tiles available, given the indexes in the data table, it should be real quick)
     var res = _sqliteDb.select(sql, [e.getTableName().name]);
     res.forEach((resRow) {
-      var zl = (resRow["zoom_level"] as num).toInt();
-      var mw = (resRow["matrix_width"] as num).toInt();
-      var mh = (resRow["matrix_height"] as num).toInt();
-      var tw = (resRow["tile_width"] as num).toInt();
-      var th = (resRow["tile_height"] as num).toInt();
-      var pxs = (resRow["pixel_x_size"] as num).toDouble();
-      var pys = (resRow["pixel_y_size"] as num).toDouble();
-      var has = resRow["has_tiles"];
+      var zl = (resRow.get("zoom_level") as num).toInt();
+      var mw = (resRow.get("matrix_width") as num).toInt();
+      var mh = (resRow.get("matrix_height") as num).toInt();
+      var tw = (resRow.get("tile_width") as num).toInt();
+      var th = (resRow.get("tile_height") as num).toInt();
+      var pxs = (resRow.get("pixel_x_size") as num).toDouble();
+      var pys = (resRow.get("pixel_y_size") as num).toDouble();
+      var has = resRow.get("has_tiles");
 
       TileMatrix m = TileMatrix(zl, mw, mh, tw, th, pxs, pys)
         ..setTiles(has == 1 ? true : false);
@@ -313,9 +313,9 @@ class GeopackageDb {
 
   FeatureEntry createFeatureEntry(dynamic rs) {
     FeatureEntry e = new FeatureEntry();
-    e.setIdentifier(rs["identifier"]);
-    e.setDescription(rs["description"]);
-    e.setTableName(SqlName(rs["table_name"]));
+    e.setIdentifier(rs.get("identifier"));
+    e.setDescription(rs.get("description"));
+    e.setTableName(SqlName(rs.get("table_name")));
 //    try {
 //      ISO8601_TS_FORMATTER.setTimeZone(TimeZone.getTimeZone("GMT"));
 //      e.setLastChange(ISO8601_TS_FORMATTER.parse(rs.getString("last_change")));
@@ -323,16 +323,16 @@ class GeopackageDb {
 //      throw new IOException(ex);
 //    }
 
-    int srid = rs["srs_id"];
+    int srid = rs.get("srs_id");
     e.setSrid(srid);
-    e.setBounds(
-        new Envelope(rs["min_x"], rs["max_x"], rs["min_y"], rs["max_y"]));
+    e.setBounds(new Envelope(
+        rs.get("min_x"), rs.get("max_x"), rs.get("min_y"), rs.get("max_y")));
 
-    e.setGeometryColumn(rs["column_name"]);
-    e.setGeometryType(EGeometryType.forTypeName(rs["geometry_type_name"]));
+    e.setGeometryColumn(rs.get("column_name"));
+    e.setGeometryType(EGeometryType.forTypeName(rs.get("geometry_type_name")));
 
-    e.setZ(rs["z"] == 1 ? true : false);
-    e.setM(rs["m"] == 1 ? true : false);
+    e.setZ(rs.get("z") == 1 ? true : false);
+    e.setM(rs.get("m") == 1 ? true : false);
     return e;
   }
 
@@ -703,10 +703,10 @@ class GeopackageDb {
       sql += "limit $limit";
     }
     var result = _sqliteDb.select(sql);
-    result.forEach((map) {
+    result.forEach((QueryResultRow map) {
       Map<String, dynamic> newMap = {};
       bool doAdd = true;
-      var geomBytes = map[queryResult.geomName];
+      var geomBytes = map.get(queryResult.geomName);
       if (geomBytes != null) {
         Geometry geom = GeoPkgGeomReader(geomBytes).get();
         if (_supportsRtree && geometry == null) {
@@ -731,11 +731,12 @@ class GeopackageDb {
         }
       }
       if (doAdd) {
-        map.forEach((k, v) {
-          if (k != queryResult.geomName) {
-            newMap[k] = v;
-          }
-        });
+        map
+          ..forEach((k, v) {
+            if (k != queryResult.geomName) {
+              newMap[k] = v;
+            }
+          });
         queryResult.data.add(newMap);
       }
     });
