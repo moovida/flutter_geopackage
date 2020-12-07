@@ -11,8 +11,8 @@ environment:
 dependencies:
   intl: ^0.16.1
 
-  dart_hydrologis_db: #^0.5.0
-    path: ../dart_hydrologis_db/
+  dart_hydrologis_db: ^0.5.0
+    # path: ../dart_hydrologis_db/
     #  git:
     #    url: https://github.com/moovida/dart_hydrologis_db.git
 
