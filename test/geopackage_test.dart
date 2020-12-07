@@ -108,7 +108,7 @@ void main() {
           'name': 'updated two',
           'the_geom': geomBytes1,
         };
-        var changed = db.updateMap(t1Name, newRow, "id=${row['id']}");
+        var changed = db.updateMap(t1Name, newRow, "id=${row.get('id')}");
         expect(changed, 1);
 
         geometries =
@@ -147,9 +147,9 @@ void main() {
         var select = db.select("Select * from ${t1Name.fixedName}");
         expect(select.length, 1);
         var row = select.first;
-        expect(row['id'], 1);
-        expect(row['name'] == null, true);
-        expect(row['the_geom'] == null, true);
+        expect(row.get('id'), 1);
+        expect(row.get('name') == null, true);
+        expect(row.get('the_geom') == null, true);
       } finally {
         db.close();
       }
@@ -275,10 +275,10 @@ void main() {
       var result = vectorDb.select(sql);
       var row = result.first;
 
-      expect(row.columnAt(0), 0.0);
-      expect(row.columnAt(1), 10.0);
-      expect(row.columnAt(2), 0.0);
-      expect(row.columnAt(3), 10.0);
+      expect(row.getAt(0), 0.0);
+      expect(row.getAt(1), 10.0);
+      expect(row.getAt(2), 0.0);
+      expect(row.getAt(3), 10.0);
 
       expect(result.length, 1);
     });
@@ -288,13 +288,13 @@ void main() {
       var result = vectorDb.select(sql);
       var row = result.first;
 
-      var geomField = row['geom'];
-      var intField = row['intfield'];
-      var strField = row['strfield'];
-      var realField = row['realfield'];
-      var dateTimeField = row['datetimefield'];
-      var dateField = row['datefield'];
-      var binaryField = row['binaryfield'];
+      var geomField = row.get('geom');
+      var intField = row.get('intfield');
+      var strField = row.get('strfield');
+      var realField = row.get('realfield');
+      var dateTimeField = row.get('datetimefield');
+      var dateField = row.get('datefield');
+      var binaryField = row.get('binaryfield');
 
       var geometry = GeoPkgGeomReader(geomField).get();
       expect(geometry.toText(), "POINT (1 2)");
@@ -327,13 +327,13 @@ void main() {
       result = vectorDb.select(sql);
       row = result.first;
 
-      geomField = row['geom'];
-      intField = row['intfield'];
-      strField = row['strfield'];
-      realField = row['realfield'];
-      dateTimeField = row['datetimefield'];
-      dateField = row['datefield'];
-      binaryField = row['binaryfield'];
+      geomField = row.get('geom');
+      intField = row.get('intfield');
+      strField = row.get('strfield');
+      realField = row.get('realfield');
+      dateTimeField = row.get('datetimefield');
+      dateField = row.get('datefield');
+      binaryField = row.get('binaryfield');
 
       geometry = GeoPkgGeomReader(geomField).get();
       expect(geometry.toText(), "POINT (10 20)");

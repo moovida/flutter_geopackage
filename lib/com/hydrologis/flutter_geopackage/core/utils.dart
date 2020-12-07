@@ -11,7 +11,7 @@ class SQLException implements Exception {
 /// A simple table info.
 ///
 /// <p>If performance is needed, this should not be used.</p>
-class QueryResult {
+class GPQueryResult {
   String geomName;
 
   /// This can optionally be used to identify record sources

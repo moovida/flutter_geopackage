@@ -62,14 +62,14 @@ class GeopackageDb {
   int get hashCode => _dbPath.hashCode;
 
   openOrCreate({Function dbCreateFunction}) {
-    _sqliteDb.open(dbCreateFunction: dbCreateFunction);
+    _sqliteDb.open(populateFunction: dbCreateFunction);
 
     // 1196444487 (the 32-bit integer value of 0x47504B47 or GPKG in ASCII) for GPKG 1.2 and
     // greater
     // 1196437808 (the 32-bit integer value of 0x47503130 or GP10 in ASCII) for GPKG 1.0 or
     // 1.1
     var res = _sqliteDb.select("PRAGMA application_id");
-    int appId = res.first['application_id'];
+    int appId = res.first.get('application_id');
     if (0x47503130 == appId) {
       _gpkgVersion = "1.0/1.1";
     } else if (0x47504B47 == appId) {
@@ -174,7 +174,7 @@ class GeopackageDb {
         """;
 
     var res = _sqliteDb.select(sql, [name.name, DataType.Feature.value]);
-    if (res.isNotEmpty) {
+    if (res.length != 0) {
       return createFeatureEntry(res.first);
     }
     return null;
@@ -282,7 +282,7 @@ class GeopackageDb {
       """;
 
     var res = _sqliteDb.select(sql, [name.name]);
-    if (res.isNotEmpty) {
+    if (res.length != 0) {
       return createTileEntry(res.first);
     }
 
@@ -303,7 +303,7 @@ class GeopackageDb {
     String sql =
         "SELECT name FROM sqlite_master WHERE type='table' AND name=? ";
     var res = _sqliteDb.select(sql, [getSpatialIndexName(featureEntry)]);
-    return res.isNotEmpty;
+    return res.length != 0;
   }
 
   String getSpatialIndexName(FeatureEntry feature) {
@@ -656,9 +656,9 @@ class GeopackageDb {
     return _sqliteDb.getPrimaryKey(tableName);
   }
 
-  QueryResult getTableData(SqlName tableName,
+  GPQueryResult getTableData(SqlName tableName,
       {Envelope envelope, Geometry geometry, String where, int limit}) {
-    QueryResult queryResult = new QueryResult();
+    GPQueryResult queryResult = new GPQueryResult();
 
     GeometryColumn geometryColumn = getGeometryColumnsForTable(tableName);
     queryResult.geomName = geometryColumn.geometryColumnName;
@@ -874,7 +874,7 @@ class GeopackageDb {
     BasicStyle style = BasicStyle();
     if (res.length == 1) {
       var row = res.first;
-      String jsonStyle = row['simplified'];
+      String jsonStyle = row.get('simplified');
       style.setFromJson(jsonStyle);
     }
     return style;
@@ -892,7 +892,7 @@ class GeopackageDb {
     var res = _sqliteDb.select(sql);
     if (res.length == 1) {
       var row = res.first;
-      String sldString = row['sld'];
+      String sldString = row.get('sld');
       return sldString;
     }
     return null;
@@ -951,8 +951,8 @@ class GeopackageDb {
 //     }
     String sql = SELECTQUERY_PRE + tableName.fixedName + SELECTQUERY_POST;
     var res = _sqliteDb.select(sql, [zoom, tx, ty]);
-    if (res.isNotEmpty) {
-      return res.first[COL_TILES_TILE_DATA];
+    if (res.length != 0) {
+      return res.first.get(COL_TILES_TILE_DATA);
     }
     return null;
   }
@@ -960,8 +960,8 @@ class GeopackageDb {
   List<int> getTileDirect(SqlName tableName, int tx, int ty, int zoom) {
     String sql = SELECTQUERY_PRE + tableName.fixedName + SELECTQUERY_POST;
     var res = _sqliteDb.select(sql, [zoom, tx, ty]);
-    if (res.isNotEmpty) {
-      return res.first[COL_TILES_TILE_DATA];
+    if (res.length != 0) {
+      return res.first.get(COL_TILES_TILE_DATA);
     }
     return null;
   }
@@ -1016,7 +1016,7 @@ class GeopackageDb {
     return _sqliteDb.updateMap(table, values, where);
   }
 
-  Iterable<dynamic> select(String sql) {
+  QueryResult select(String sql) {
     return _sqliteDb.select(sql);
   }
 
