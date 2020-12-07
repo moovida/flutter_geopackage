@@ -582,13 +582,13 @@ class GeopackageDb {
 
     List<Geometry> geoms = [];
     var res = _sqliteDb.select(sql);
-    res.forEach((map) {
-      var geomBytes = map.columnAt(0);
+    res.forEach((QueryResultRow map) {
+      var geomBytes = map.getAt(0);
       if (geomBytes != null) {
         Geometry geom = GeoPkgGeomReader(geomBytes).get();
-        var pkValue = map.columnAt(1);
+        var pkValue = map.getAt(1);
         if (userDataField != null) {
-          geom.setUserData(map.columnAt(2));
+          geom.setUserData(map.getAt(2));
         } else {
           geom.setUserData(pkValue);
         }
