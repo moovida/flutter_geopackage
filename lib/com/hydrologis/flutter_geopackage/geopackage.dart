@@ -1092,18 +1092,10 @@ class GeopackageDb {
         argumentCount: 1,
         deterministic: false,
         directOnly: false);
+  }
 
-    // moorDb.createFunction('ST_MinX', 1, Pointer.fromFunction(minxFunction),
-    //     isDeterministic: true, directOnly: false);
-    // moorDb.createFunction('ST_MaxX', 1, Pointer.fromFunction(maxxFunction),
-    //     isDeterministic: true, directOnly: false);
-    // moorDb.createFunction('ST_MinY', 1, Pointer.fromFunction(minyFunction),
-    //     isDeterministic: true, directOnly: false);
-    // moorDb.createFunction('ST_MaxY', 1, Pointer.fromFunction(maxyFunction),
-    //     isDeterministic: true, directOnly: false);
-    // moorDb.createFunction(
-    //     'ST_IsEmpty', 1, Pointer.fromFunction(isEmptyFunction),
-    //     isDeterministic: true, directOnly: false);
+  dynamic geometryToSql(Geometry geom) {
+    return GeoPkgGeomWriter().write(geom);
   }
 }
 
