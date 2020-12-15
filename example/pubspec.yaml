@@ -32,12 +32,12 @@ dependencies:
   flutter_geopackage:
     path: ../../flutter_geopackage
 
-  dart_hydrologis_db: ^0.5.0
+  dart_hydrologis_db: ^0.6.0
 
   # MIT
   proj4dart: 1.0.5
 
-  dart_jts: ^0.0.5+1
+  dart_jts: ^0.0.6
 #    git:
 #      url: https://github.com/moovida/dart_jts.git
 

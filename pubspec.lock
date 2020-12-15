@@ -98,7 +98,7 @@ packages:
       name: dart_hydrologis_db
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "0.6.0"
+    version: "0.6.0+1"
   dart_hydrologis_utils:
     dependency: "direct dev"
     description:
@@ -112,7 +112,7 @@ packages:
       name: dart_jts
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "0.0.6"
+    version: "0.0.6+1"
   ffi:
     dependency: transitive
     description:
