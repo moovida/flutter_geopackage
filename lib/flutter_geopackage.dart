@@ -15,7 +15,6 @@ import 'package:proj4dart/proj4dart.dart' as PROJ;
 
 part 'com/hydrologis/flutter_geopackage/core/entries.dart';
 part 'com/hydrologis/flutter_geopackage/core/features.dart';
-part 'com/hydrologis/flutter_geopackage/core/functions.dart';
 part 'com/hydrologis/flutter_geopackage/core/geom.dart';
 part 'com/hydrologis/flutter_geopackage/core/style.dart';
 part 'com/hydrologis/flutter_geopackage/core/tiles.dart';
