@@ -494,7 +494,14 @@ class GeopackageDb {
   /// @param limit an optional limit to apply.
   /// @return The list of geometries intersecting the envelope.
   /// @throws Exception
-  List<Geometry> getGeometriesIn(SqlName tableName, {Envelope envelope, List<String> prePostWhere, int limit = -1, String userDataField}) {
+  List<Geometry> getGeometriesIn(
+    SqlName tableName, {
+    Envelope envelope,
+    Geometry intersectionGeometry,
+    List<String> prePostWhere,
+    int limit = -1,
+    String userDataField,
+  }) {
     List<String> wheres = [];
     String pre = "";
     String post = "";
@@ -513,6 +520,10 @@ class GeopackageDb {
     String pk = _sqliteDb.getPrimaryKey(tableName);
     GeometryColumn gCol = getGeometryColumnsForTable(tableName);
     String sql = "SELECT " + pre + gCol.geometryColumnName + post + " as the_geom, $pk $userDataSql FROM " + tableName.fixedName;
+
+    if (intersectionGeometry != null) {
+      envelope = intersectionGeometry.getEnvelopeInternal();
+    }
 
     if (envelope != null) {
       double x1 = envelope.getMinX();
@@ -552,6 +563,9 @@ class GeopackageDb {
         }
       }
     });
+    if (intersectionGeometry != null) {
+      geoms.removeWhere((geom) => !geom.intersects(intersectionGeometry));
+    }
     return geoms;
   }
 
@@ -562,6 +576,7 @@ class GeopackageDb {
   /// on the resulting geometries. This is NOT done on the db side.
   ///
   /// @return The list of geometries intersecting the geometry.
+  /// @deprecated use [getGeometriesIn]. This will be removed.
   List<Geometry> getGeometriesIntersecting(SqlName tableName, {Geometry geometry, List<String> prePostWhere, int limit = -1, String userDataField}) {
     if (geometry == null) {
       return getGeometriesIn(tableName, prePostWhere: prePostWhere, limit: limit, userDataField: userDataField);

@@ -234,9 +234,9 @@ void main() {
       expect(geometriesE.length, 2);
 
       Geometry geom = WKTReader().read("POLYGON ((2.65 5.3, 4.875 3.7, 2.9 5.65, 2.65 5.3))");
-      var geomsPol = vectorDb.getGeometriesIntersecting(
+      var geomsPol = vectorDb.getGeometriesIn(
         geomcollection2DTable,
-        geometry: geom,
+        intersectionGeometry: geom,
       );
       expect(geomsPol.length, 1);
     });
