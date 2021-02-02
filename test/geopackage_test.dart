@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 
 import 'package:dart_hydrologis_utils/dart_hydrologis_utils.dart';
 import 'package:dart_hydrologis_db/dart_hydrologis_db.dart';
@@ -164,6 +165,29 @@ void main() {
       List<String> tables = tablesMap[GeopackageTableNames.USERDATA];
       expect(tables.length, 16);
     });
+
+    test("testEmptyLayer", () {
+      File emptyDbFile = File("./test/empty_polygons.gpkg");
+      var emptyLayerDb = GeopackageDb(emptyDbFile.path);
+      emptyLayerDb.openOrCreate();
+
+      Map<String, List<String>> tablesMap = emptyLayerDb.getTablesMap(false);
+      List<String> tables = tablesMap[GeopackageTableNames.USERDATA];
+      expect(tables.length, 1);
+
+      var tableName = SqlName("samplepolygon");
+      var emptyLayer = emptyLayerDb.feature(tableName);
+      expect(emptyLayer.srid, 4326);
+
+      expect(emptyLayer.bounds == Envelope(0, 0, 0, 0), true);
+
+      var tableData = emptyLayerDb.getTableData(tableName);
+      expect(tableData.data.length, 0);
+
+      var geometriesIn = emptyLayerDb.getGeometriesIn(tableName, envelope: Envelope(-180, 180, -90, 90));
+      expect(geometriesIn.length, 0);
+    });
+
     test("test2dPointTable", () {
       var point2DTable = SqlName("point2d");
       bool hasSpatialIndex = vectorDb.hasSpatialIndex(point2DTable);

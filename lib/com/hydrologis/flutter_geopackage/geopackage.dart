@@ -314,7 +314,18 @@ class GeopackageDb {
 
     int srid = rs.get("srs_id");
     e.setSrid(srid);
-    e.setBounds(new Envelope(rs.get("min_x"), rs.get("max_x"), rs.get("min_y"), rs.get("max_y")));
+
+    var minX = rs.get("min_x");
+    var maxX = rs.get("max_x");
+    var minY = rs.get("min_y");
+    var maxY = rs.get("max_y");
+    var env;
+    if (minX != null && maxX != null && minY != null && maxY != null) {
+      env = Envelope(minX, maxX, minY, maxY);
+    } else {
+      env = Envelope(0, 0, 0, 0);
+    }
+    e.setBounds(env);
 
     e.setGeometryColumn(rs.get("column_name"));
     e.setGeometryType(EGeometryType.forTypeName(rs.get("geometry_type_name")));
