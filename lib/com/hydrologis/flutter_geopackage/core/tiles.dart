@@ -218,11 +218,11 @@ class TilesFetcher {
           from ${tableName.fixedName} 
           where ${GeopackageDb.COL_TILES_ZOOM_LEVEL}=$zoomLevel
         """;
-    var result = db.select(sql);
+    QueryResult result = db.select(sql);
     List<LazyGpkgTile> tiles = [];
-    result.forEach((row) {
-      var x = row[GeopackageDb.COL_TILES_TILE_COLUMN];
-      var y = row[GeopackageDb.COL_TILES_TILE_ROW];
+    result.forEach((QueryResultRow row) {
+      var x = row.get(GeopackageDb.COL_TILES_TILE_COLUMN);
+      var y = row.get(GeopackageDb.COL_TILES_TILE_ROW);
       var lazyTile =
           getLazyTile(db, x, y, to4326BoundsConverter: to4326BoundsConverter);
       if (lazyTile != null) tiles.add(lazyTile);
