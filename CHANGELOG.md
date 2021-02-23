@@ -1,3 +1,7 @@
+# Version 0.4.6
+
+Dependencies upgrade.
+
 # Version 0.4.5
 
 Fixes.
