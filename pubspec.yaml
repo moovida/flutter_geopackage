@@ -9,7 +9,7 @@ environment:
   sdk: ">=2.1.0 <3.0.0"
 
 dependencies:
-  intl: ^0.17.0
+  intl: '>=0.16.1 <=0.17.0'
 
   dart_hydrologis_db: ^0.6.2
     # path: ../dart_hydrologis_db/
