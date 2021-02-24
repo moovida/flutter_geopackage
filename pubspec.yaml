@@ -13,7 +13,8 @@ dependencies:
 
   # MIT -> added to help chose dart_hydrologis_db the right version for the dev channel
   #        can be removed once null-safety has been reached
-  sqlite3: '>=0.1.8 <=1.0.0'
+  sqlite3: '1.0.0'
+  # sqlite3: '>=0.1.8 <=1.0.0'
 
   dart_hydrologis_db: ^0.6.2
     # path: ../dart_hydrologis_db/
