@@ -680,33 +680,36 @@ class GeopackageDb {
   GPQueryResult getTableData(SqlName tableName,
       {Envelope envelope, Geometry geometry, String where, int limit}) {
     GPQueryResult queryResult = new GPQueryResult();
+    String sql = "select * from " + tableName.fixedName;
+    List<String> wheresList = [];
 
     GeometryColumn geometryColumn = getGeometryColumnsForTable(tableName);
-    queryResult.geomName = geometryColumn.geometryColumnName;
+    bool hasGeom = geometryColumn != null;
+    if (hasGeom) {
+      queryResult.geomName = geometryColumn.geometryColumnName;
 
-    String sql = "select * from " + tableName.fixedName;
-
-    if (envelope != null && geometry != null) {
-      throw ArgumentError("Only one of envelope and geometry have to be set.");
-    }
-
-    List<String> wheresList = [];
-    if (envelope != null) {
-      double x1 = envelope.getMinX();
-      double y1 = envelope.getMinY();
-      double x2 = envelope.getMaxX();
-      double y2 = envelope.getMaxY();
-      String spatialindexBBoxWherePiece =
-          getSpatialindexBBoxWherePiece(tableName, null, x1, y1, x2, y2);
-      if (spatialindexBBoxWherePiece != null) {
-        wheresList.add(spatialindexBBoxWherePiece);
+      if (envelope != null && geometry != null) {
+        throw ArgumentError(
+            "Only one of envelope and geometry have to be set.");
       }
-    }
-    if (geometry != null) {
-      String spatialindexGeometryWherePiece =
-          getSpatialindexGeometryWherePiece(tableName, null, geometry);
-      if (spatialindexGeometryWherePiece != null) {
-        wheresList.add(spatialindexGeometryWherePiece);
+
+      if (envelope != null) {
+        double x1 = envelope.getMinX();
+        double y1 = envelope.getMinY();
+        double x2 = envelope.getMaxX();
+        double y2 = envelope.getMaxY();
+        String spatialindexBBoxWherePiece =
+            getSpatialindexBBoxWherePiece(tableName, null, x1, y1, x2, y2);
+        if (spatialindexBBoxWherePiece != null) {
+          wheresList.add(spatialindexBBoxWherePiece);
+        }
+      }
+      if (geometry != null) {
+        String spatialindexGeometryWherePiece =
+            getSpatialindexGeometryWherePiece(tableName, null, geometry);
+        if (spatialindexGeometryWherePiece != null) {
+          wheresList.add(spatialindexGeometryWherePiece);
+        }
       }
     }
     if (where != null) {
@@ -727,27 +730,29 @@ class GeopackageDb {
     result.forEach((QueryResultRow map) {
       Map<String, dynamic> newMap = {};
       bool doAdd = true;
-      var geomBytes = map.get(queryResult.geomName);
-      if (geomBytes != null) {
-        Geometry geom = GeoPkgGeomReader(geomBytes).get();
-        if (_supportsRtree && geometry == null) {
-          queryResult.geoms.add(geom);
-        } else {
-          // if no spatial index is available, filter the geoms manually
-          if (!hasBoundsfilter) {
-            // no filter, take them all
-            queryResult.geoms.add(geom);
-          } else if (envelope != null &&
-              geom.getEnvelopeInternal().intersectsEnvelope(envelope)) {
-            queryResult.geoms.add(geom);
-          } else if (geometry != null &&
-              geom
-                  .getEnvelopeInternal()
-                  .intersectsEnvelope(geometry.getEnvelopeInternal()) &&
-              geom.intersects(geometry)) {
+      if (hasGeom) {
+        var geomBytes = map.get(queryResult.geomName);
+        if (geomBytes != null) {
+          Geometry geom = GeoPkgGeomReader(geomBytes).get();
+          if (_supportsRtree && geometry == null) {
             queryResult.geoms.add(geom);
           } else {
-            doAdd = false;
+            // if no spatial index is available, filter the geoms manually
+            if (!hasBoundsfilter) {
+              // no filter, take them all
+              queryResult.geoms.add(geom);
+            } else if (envelope != null &&
+                geom.getEnvelopeInternal().intersectsEnvelope(envelope)) {
+              queryResult.geoms.add(geom);
+            } else if (geometry != null &&
+                geom
+                    .getEnvelopeInternal()
+                    .intersectsEnvelope(geometry.getEnvelopeInternal()) &&
+                geom.intersects(geometry)) {
+              queryResult.geoms.add(geom);
+            } else {
+              doAdd = false;
+            }
           }
         }
       }
