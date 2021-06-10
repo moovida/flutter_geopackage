@@ -1,3 +1,7 @@
+# Version 0.4.7
+
+Fixes for non spatial queries.
+
 # Version 0.4.6
 
 Dependencies upgrade.
