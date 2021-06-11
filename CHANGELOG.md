@@ -1,3 +1,7 @@
+# Version 0.4.8
+
+Fixes for proj upgrade.
+
 # Version 0.4.7
 
 Fixes for non spatial queries.
