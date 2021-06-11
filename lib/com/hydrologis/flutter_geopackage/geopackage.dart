@@ -227,8 +227,8 @@ class GeopackageDb {
     );
     if (cSrid != srid) {
       // need to reproject
-      bounds = Proj.transformEnvelope(PROJ.Projection("EPSG:$cSrid"),
-          PROJ.Projection("EPSG:$srid"), bounds);
+      bounds = Proj.transformEnvelope(PROJ.Projection.get("EPSG:$cSrid"),
+          PROJ.Projection.get("EPSG:$srid"), bounds);
     }
     e.setBounds(bounds);
 
