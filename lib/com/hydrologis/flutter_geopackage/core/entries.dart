@@ -28,7 +28,7 @@ class Entry {
   late SqlName tableName;
   late DataType dataType;
   late String? identifier;
-  late String description;
+  late String? description;
   late Envelope bounds;
   int srid = 0;
 
@@ -56,11 +56,11 @@ class Entry {
     this.identifier = identifier;
   }
 
-  String getDescription() {
+  String? getDescription() {
     return description;
   }
 
-  void setDescription(String description) {
+  void setDescription(String? description) {
     this.description = description;
   }
 
