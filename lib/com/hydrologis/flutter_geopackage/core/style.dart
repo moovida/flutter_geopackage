@@ -27,8 +27,8 @@ class BasicStyle {
   static final String UNIQUEVALUES = "uniquevalues";
   static final String THEME = "theme";
 
-  int id;
-  String name;
+  int id = 0;
+  String name = "";
   double size = 5;
   String fillcolor = "red";
   String strokecolor = "black";
@@ -106,9 +106,9 @@ class BasicStyle {
    * If a unique style is defined, the hashmap contains in key the unique value
    * and in value the style to apply.
    */
-  Map<String, BasicStyle> themeMap;
+  Map<String, BasicStyle>? themeMap;
 
-  String themeField;
+  // String themeField;
 
   BasicStyle duplicate() {
     BasicStyle dup = new BasicStyle();
@@ -282,11 +282,14 @@ class BasicStyle {
     if (map.containsKey(SIZE)) size = double.parse(map[SIZE].toString());
     if (map.containsKey(FILLCOLOR)) fillcolor = map[FILLCOLOR];
     if (map.containsKey(STROKECOLOR)) strokecolor = map[STROKECOLOR];
-    if (map.containsKey(FILLALPHA)) fillalpha = double.parse(map[FILLALPHA].toString());
-    if (map.containsKey(STROKEALPHA)) strokealpha = double.parse(map[STROKEALPHA].toString());
+    if (map.containsKey(FILLALPHA))
+      fillalpha = double.parse(map[FILLALPHA].toString());
+    if (map.containsKey(STROKEALPHA))
+      strokealpha = double.parse(map[STROKEALPHA].toString());
     if (map.containsKey(SHAPE)) shape = map[SHAPE];
     if (map.containsKey(WIDTH)) width = double.parse(map[WIDTH].toString());
-    if (map.containsKey(LABELSIZE)) labelsize = double.parse(map[LABELSIZE].toString());
+    if (map.containsKey(LABELSIZE))
+      labelsize = double.parse(map[LABELSIZE].toString());
     if (map.containsKey(LABELFIELD)) labelfield = map[LABELFIELD];
     if (map.containsKey(LABELVISIBLE)) labelvisible = map[LABELVISIBLE];
     if (map.containsKey(ENABLED)) enabled = map[ENABLED];
@@ -294,7 +297,8 @@ class BasicStyle {
     if (map.containsKey(DASH)) dashPattern = map[DASH];
     if (map.containsKey(MINZOOM)) minZoom = map[MINZOOM];
     if (map.containsKey(MAXZOOM)) maxZoom = map[MAXZOOM];
-    if (map.containsKey(DECIMATION)) decimationFactor = double.parse(map[DECIMATION].toString());
+    if (map.containsKey(DECIMATION))
+      decimationFactor = double.parse(map[DECIMATION].toString());
   }
 
   String toString() {

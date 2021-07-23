@@ -45,7 +45,7 @@ class GeopackageBinaryType {
 
 /// The Geopackage Geometry BLOB Header Flags (see Geopackage specs).
 class GeometryHeaderFlags {
-  int b;
+  int b = 0;
 
   static const int MASK_BINARY_TYPE = 0x20; // 00100000
   static const int MASK_EMPTY = 0x10; // 00010000
@@ -101,10 +101,10 @@ class GeometryHeaderFlags {
 
 /// The Geopackage Geometry BLOB Header (see Geopackage specs).
 class GeometryHeader {
-  int version;
-  GeometryHeaderFlags flags;
-  int srid;
-  Envelope envelope;
+  int version = 0;
+  late GeometryHeaderFlags flags;
+  int srid = 0;
+  late Envelope envelope;
 
   int getVersion() {
     return version;
@@ -150,17 +150,17 @@ class GeoPkgGeomReader {
   static final GeometryFactory DEFAULT_GEOM_FACTORY =
       new GeometryFactory.defaultPrecision();
 
-  Uint8List _dataBuffer;
+  late Uint8List _dataBuffer;
 
-  GeometryHeader _header;
+  GeometryHeader? _header;
 
-  Geometry _geometry;
+  Geometry? _geometry;
 
   GeometryFactory _geomFactory = DEFAULT_GEOM_FACTORY;
 
-  ByteOrderDataInStream _din;
+  late ByteOrderDataInStream _din;
 
-  String geometryType;
+  String? geometryType;
 
   GeoPkgGeomReader(List<int> ins) {
     if (ins is Uint8List) {
@@ -174,7 +174,7 @@ class GeoPkgGeomReader {
     if (_header == null) {
       _header = readHeader();
     }
-    return _header;
+    return _header!;
   }
 
   Geometry get() {
@@ -184,7 +184,7 @@ class GeoPkgGeomReader {
     if (_geometry == null) {
       _geometry = _read();
     }
-    return _geometry;
+    return _geometry!;
   }
 
   Envelope getEnvelope() {
@@ -198,7 +198,7 @@ class GeoPkgGeomReader {
   Geometry _read() {
     WKBReader wkbReader = new WKBReader.withFactory(_geomFactory);
     Geometry g = wkbReader.read(_dataBuffer.sublist(_din.readOffset));
-    g.setSRID(_header.getSrid());
+    g.setSRID(_header!.getSrid());
     return g;
   }
 

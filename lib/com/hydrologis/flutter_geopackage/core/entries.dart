@@ -8,7 +8,7 @@ class DataType {
 
   const DataType._(this.value);
 
-  static DataType of(String type) {
+  static DataType? of(String type) {
     if (type == Feature.value) {
       return Feature;
     } else if (type == Tile.value) {
@@ -25,12 +25,12 @@ class DataType {
 ///
 /// @author Justin Deoliveira, OpenGeo
 class Entry {
-  SqlName tableName;
-  DataType dataType;
-  String identifier;
-  String description;
-  Envelope bounds;
-  int srid;
+  late SqlName tableName;
+  late DataType dataType;
+  late String identifier;
+  late String description;
+  late Envelope bounds;
+  int srid = 0;
 
   SqlName getTableName() {
     return tableName;

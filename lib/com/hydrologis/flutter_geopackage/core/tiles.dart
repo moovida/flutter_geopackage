@@ -8,7 +8,7 @@ part of flutter_geopackage;
 class TileEntry extends Entry {
   List<TileMatrix> tileMatricies = [];
 
-  Envelope tileMatrixSetBounds;
+  Envelope? tileMatrixSetBounds;
 
   TileEntry() {
     setDataType(DataType.Tile);
@@ -28,14 +28,14 @@ class TileEntry extends Entry {
     setTileMatricies(te.getTileMatricies());
     this.tileMatrixSetBounds = te.tileMatrixSetBounds == null
         ? null
-        : new Envelope.fromEnvelope(te.tileMatrixSetBounds);
+        : new Envelope.fromEnvelope(te.tileMatrixSetBounds!);
   }
 
   /// Returns the tile matrix set bounds. The bounds are expressed in the same CRS as the entry,
   /// but they might differ in extent (if null, then the tile matrix bounds are supposed to be the
   /// same as the entry)
   Envelope getTileMatrixSetBounds() {
-    return tileMatrixSetBounds != null ? tileMatrixSetBounds : bounds;
+    return tileMatrixSetBounds != null ? tileMatrixSetBounds! : bounds;
   }
 
   void setTileMatrixSetBounds(Envelope tileMatrixSetBounds) {
@@ -53,7 +53,7 @@ class TileMatrix {
   int tileWidth, tileHeight;
   double xPixelSize;
   double yPixelSize;
-  bool tiles;
+  bool tiles = false;
 
   TileMatrix(this.zoomLevel, this.matrixWidth, this.matrixHeight,
       this.tileWidth, this.tileHeight, this.xPixelSize, this.yPixelSize);
@@ -135,36 +135,36 @@ class TileMatrix {
 /// If no zoomlevel is provided, the highest possible is used.
 class TilesFetcher {
   TileEntry tileEntry;
-  SqlName tableName;
-  int zoomLevel;
-  List<TileMatrix> tileMatricies;
+  late SqlName tableName;
+  int? zoomLevel;
+  late List<TileMatrix> tileMatricies;
 
-  double deltaX;
-  double deltaY;
-  double tileSetMinX;
-  double tileSetMaxY;
+  late double deltaX;
+  late double deltaY;
+  late double tileSetMinX;
+  late double tileSetMaxY;
 
-  int xPixels;
-  int yPixels;
+  late int xPixels;
+  late int yPixels;
 
-  int matrixWidth;
-  int matrixHeight;
+  late int matrixWidth;
+  late int matrixHeight;
 
   TilesFetcher(this.tileEntry, {this.zoomLevel}) {
     tileMatricies = tileEntry.getTileMatricies();
     if (tileMatricies.isEmpty) {
       throw StateError("No tile matrices available.");
     }
-    TileMatrix tileMatrix = tileMatricies.last;
+    TileMatrix? tileMatrix = tileMatricies.last;
     if (zoomLevel != null) {
-      tileMatrix =
-          tileMatricies.firstWhere((tm) => tm.getZoomLevel() == zoomLevel);
+      tileMatrix = tileMatricies
+          .firstWhere((tm) => tm.getZoomLevel() == zoomLevel, orElse: null);
     }
-    zoomLevel = tileMatrix.zoomLevel;
 
     if (tileMatrix == null) {
       throw StateError("No tile matrix found for given zoomlevel.");
     }
+    zoomLevel = tileMatrix.zoomLevel;
 
     matrixWidth = tileMatrix.getMatrixWidth();
     matrixHeight = tileMatrix.getMatrixHeight();
@@ -194,7 +194,7 @@ class TilesFetcher {
   }
 
   LazyGpkgTile getLazyTile(GeopackageDb db, int xTile, int yTile,
-      {Function to4326BoundsConverter}) {
+      {Function? to4326BoundsConverter}) {
     var tileBounds = getTileBounds(xTile, yTile);
     if (to4326BoundsConverter != null)
       tileBounds = to4326BoundsConverter(tileBounds);
@@ -205,14 +205,14 @@ class TilesFetcher {
       ..tileBoundsLatLong = tileBounds
       ..xTile = xTile
       ..yTile = yTile
-      ..zoomLevel = zoomLevel
+      ..zoomLevel = zoomLevel!
       ..xPixels = xPixels
       ..yPixels = yPixels;
     return tile;
   }
 
   List<LazyGpkgTile> getAllLazyTiles(GeopackageDb db,
-      {Function to4326BoundsConverter}) {
+      {Function? to4326BoundsConverter}) {
     var sql = """
           select ${GeopackageDb.COL_TILES_TILE_COLUMN}, ${GeopackageDb.COL_TILES_TILE_ROW} 
           from ${tableName.fixedName} 
@@ -233,21 +233,21 @@ class TilesFetcher {
 
 /// A lazy loading geopackage tile.
 class LazyGpkgTile {
-  SqlName tableName;
-  Envelope tileBoundsLatLong;
+  late SqlName tableName;
+  Envelope? tileBoundsLatLong;
 
-  int xTile;
-  int yTile;
-  int zoomLevel;
-  int xPixels;
-  int yPixels;
+  late int xTile;
+  late int yTile;
+  late int zoomLevel;
+  late int xPixels;
+  late int yPixels;
 
-  List<int> tileImageBytes;
-  GeopackageDb db;
+  List<int>? tileImageBytes;
+  GeopackageDb? db;
 
   fetch() {
     if (db != null)
-      tileImageBytes = db.getTileDirect(tableName, xTile, yTile, zoomLevel);
+      tileImageBytes = db!.getTileDirect(tableName, xTile, yTile, zoomLevel);
   }
 
   @override

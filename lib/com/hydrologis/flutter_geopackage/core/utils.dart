@@ -12,12 +12,12 @@ class SQLException implements Exception {
 ///
 /// <p>If performance is needed, this should not be used.</p>
 class GPQueryResult {
-  String geomName;
+  String? geomName;
 
   /// This can optionally be used to identify record sources
   /// in case of mixed data sources (ex. merging together
   /// QueryResults from different queries.
-  List<String> ids;
+  List<String>? ids;
 
   List<Geometry> geoms = [];
 
@@ -27,14 +27,14 @@ class GPQueryResult {
 /// Class representing a geometry_columns record.
 class GeometryColumn {
   // VARIABLES
-  SqlName tableName;
-  String geometryColumnName;
+  late SqlName tableName;
+  late String geometryColumnName;
 
   /// The type, as compatible with {@link EGeometryType#fromGeometryTypeCode(int)} and {@link ESpatialiteGeometryType#forValue(int)}.
-  EGeometryType geometryType;
-  int coordinatesDimension;
-  int srid;
-  int isSpatialIndexEnabled;
+  late EGeometryType geometryType;
+  late int coordinatesDimension;
+  late int srid;
+  late int isSpatialIndexEnabled;
 }
 
 class GeometryUtilities {
@@ -121,11 +121,11 @@ class GeopackageTableNames {
       if (tableName.startsWith(startsWithIndexTables) ||
           metadataTables.contains(tableName) ||
           internalDataTables.contains(tableName)) {
-        List<String> list = tablesMap[SYSTEM];
+        List<String> list = tablesMap[SYSTEM]!;
         list.add(tableName);
         continue;
       }
-      List<String> list = tablesMap[USERDATA];
+      List<String> list = tablesMap[USERDATA]!;
       list.add(tableName);
     }
 
@@ -144,9 +144,9 @@ class Proj {
   static final int EPSG4326_INT = 4326;
   static final int EPSG3857_INT = 3857;
   static final PROJ.Projection EPSG3857 =
-      PROJ.Projection.get('EPSG:$EPSG3857_INT');
+      PROJ.Projection.get('EPSG:$EPSG3857_INT')!;
 
-  static PROJ.Projection fromSrid(int srid) {
+  static PROJ.Projection? fromSrid(int srid) {
     if (srid == EPSG3857_INT) return EPSG3857;
     if (srid == EPSG4326_INT) return EPSG4326;
     var prj = PROJ.Projection.get("EPSG:$srid");

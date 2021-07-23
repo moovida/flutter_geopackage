@@ -7,10 +7,10 @@ part of flutter_geopackage;
 /// @author Justin Deoliveira, OpenGeo
 /// @author Niels Charlier
 class FeatureEntry extends Entry {
-  EGeometryType geometryType;
+  late EGeometryType geometryType;
   bool z = false;
   bool m = false;
-  String geometryColumn;
+  late String geometryColumn;
 
   FeatureEntry() {
     setDataType(DataType.Feature);
