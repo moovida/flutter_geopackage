@@ -1,3 +1,7 @@
+# Version 0.5.0
+
+MIgration to null safety.
+
 # Version 0.4.8
 
 Fixes for proj upgrade.
