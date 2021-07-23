@@ -1,6 +1,6 @@
 # Version 0.5.0
 
-MIgration to null safety.
+Migration to null safety.
 
 # Version 0.4.8
 
