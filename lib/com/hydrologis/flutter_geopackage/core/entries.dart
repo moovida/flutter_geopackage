@@ -27,7 +27,7 @@ class DataType {
 class Entry {
   late SqlName tableName;
   late DataType dataType;
-  late String identifier;
+  late String? identifier;
   late String description;
   late Envelope bounds;
   int srid = 0;
@@ -48,11 +48,11 @@ class Entry {
     this.dataType = dataType;
   }
 
-  String getIdentifier() {
+  String? getIdentifier() {
     return identifier;
   }
 
-  void setIdentifier(String identifier) {
+  void setIdentifier(String? identifier) {
     this.identifier = identifier;
   }
 
