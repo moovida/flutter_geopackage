@@ -1,3 +1,7 @@
+# Version 0.5.2
+
+Upgrade dependencies to work with new sqlite3.
+
 # Version 0.5.1
 
 Upgrade dependencies to work with new sqlite3.
