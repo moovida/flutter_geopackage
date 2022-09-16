@@ -161,7 +161,8 @@ class GeopackageDb {
   /// @param name THe name of the feature entry.
   /// @return The entry, or <code>null</code> if no such entry exists.
   FeatureEntry? feature(TableName name) {
-    if (!_sqliteDb.hasTable(TableName(TABLE_GEOMETRY_COLUMNS))) {
+    if (!_sqliteDb
+        .hasTable(TableName(TABLE_GEOMETRY_COLUMNS, schemaSupported: false))) {
       return null;
     }
     String compat =
@@ -206,7 +207,7 @@ class GeopackageDb {
     TileEntry e = new TileEntry();
     e.setIdentifier(row.get("identifier"));
     e.setDescription(row.get("description"));
-    e.setTableName(SqlName(row.get("table_name")));
+    e.setTableName(TableName(row.get("table_name"), schemaSupported: false));
     int srid = (row.get("srs_id") as num).toInt();
     e.setSrid(srid);
     var matrixSetEnvelope = new Envelope(
@@ -273,7 +274,8 @@ class GeopackageDb {
   /// @param name THe name of the tile entry.
   /// @return The entry, or <code>null</code> if no such entry exists.
   TileEntry? tile(TableName name) {
-    if (!_sqliteDb.hasTable(TableName(TABLE_GEOMETRY_COLUMNS))) {
+    if (!_sqliteDb
+        .hasTable(TableName(TABLE_GEOMETRY_COLUMNS, schemaSupported: false))) {
       return null;
     }
     String compat =
@@ -323,7 +325,7 @@ class GeopackageDb {
     FeatureEntry e = new FeatureEntry();
     e.setIdentifier(rs.get("identifier"));
     e.setDescription(rs.get("description"));
-    e.setTableName(SqlName(rs.get("table_name")));
+    e.setTableName(TableName(rs.get("table_name"), schemaSupported: false));
 //    try {
 //      ISO8601_TS_FORMATTER.setTimeZone(TimeZone.getTimeZone("GMT"));
 //      e.setLastChange(ISO8601_TS_FORMATTER.parse(rs.getString("last_change")));
@@ -903,7 +905,7 @@ class GeopackageDb {
   /// Get the basic style for a table.
   ///
   /// This should not be used, since there is sld support. Use [getSld(tableName)].
-  BasicStyle getBasicStyle(SqlName tableName) {
+  BasicStyle getBasicStyle(TableName tableName) {
     checkStyleTable();
     String name = tableName.name.toLowerCase();
     String sql = "select simplified from " +
@@ -922,7 +924,7 @@ class GeopackageDb {
   }
 
   /// Get the SLD xml for a given table.
-  String? getSld(SqlName tableName) {
+  String? getSld(TableName tableName) {
     checkStyleTable();
     String name = tableName.name.toLowerCase();
     String sql = "select sld from " +
@@ -940,7 +942,7 @@ class GeopackageDb {
   }
 
   /// Update the sld string in the geopackage
-  void updateSld(SqlName tableName, String sldString) {
+  void updateSld(TableName tableName, String sldString) {
     checkStyleTable();
 
     String name = tableName.name.toLowerCase();
@@ -959,7 +961,8 @@ class GeopackageDb {
   }
 
   void checkStyleTable() {
-    if (!_sqliteDb.hasTable(TableName(HM_STYLES_TABLE))) {
+    if (!_sqliteDb
+        .hasTable(TableName(HM_STYLES_TABLE, schemaSupported: false))) {
       var createTablesQuery = '''
       CREATE TABLE $HM_STYLES_TABLE (  
         tablename TEXT NOT NULL,
@@ -985,7 +988,7 @@ class GeopackageDb {
   /// @param ty the y tile index, the osm way.
   /// @param zoom the zoom level.
   /// @return the tile image bytes.
-  List<int>? getTile(SqlName tableName, int tx, int ty, int zoom) {
+  List<int>? getTile(TableName tableName, int tx, int ty, int zoom) {
 //     if (tileRowType.equals("tms")) { // if it is not OSM way
     var tmsTileXY = osmTile2TmsTile(tx, ty, zoom);
     ty = tmsTileXY[1];
@@ -998,7 +1001,7 @@ class GeopackageDb {
     return null;
   }
 
-  List<int>? getTileDirect(SqlName tableName, int tx, int ty, int zoom) {
+  List<int>? getTileDirect(TableName tableName, int tx, int ty, int zoom) {
     String sql = SELECTQUERY_PRE + tableName.fixedName + SELECTQUERY_POST;
     var res = _sqliteDb.select(sql, [zoom, tx, ty]);
     if (res.length != 0) {
@@ -1022,7 +1025,7 @@ class GeopackageDb {
   /// @param tableName the name of the table.
   /// @return the list of zoom levels.
   /// @throws Exception
-  List<int> getTileZoomLevelsWithData(SqlName tableName) {
+  List<int> getTileZoomLevelsWithData(TableName tableName) {
     String sql = "select distinct " +
         COL_TILES_ZOOM_LEVEL +
         " from " +

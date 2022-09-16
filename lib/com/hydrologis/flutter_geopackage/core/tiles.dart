@@ -135,7 +135,7 @@ class TileMatrix {
 /// If no zoomlevel is provided, the highest possible is used.
 class TilesFetcher {
   TileEntry tileEntry;
-  late SqlName tableName;
+  late TableName tableName;
   int? zoomLevel;
   late List<TileMatrix> tileMatricies;
 
@@ -233,7 +233,7 @@ class TilesFetcher {
 
 /// A lazy loading geopackage tile.
 class LazyGpkgTile {
-  late SqlName tableName;
+  late TableName tableName;
   Envelope? tileBoundsLatLong;
 
   late int xTile;

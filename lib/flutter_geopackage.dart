@@ -3,7 +3,6 @@ library flutter_geopackage;
 
 import "dart:convert" as JSON;
 import "dart:core";
-import 'dart:io';
 import "dart:math" as math;
 import "dart:typed_data";
 
