@@ -1,3 +1,7 @@
+# Version 0.6.0
+
+Upgrade dependencies to work with new db libs and TableName (breaking change).
+
 # Version 0.5.2
 
 Upgrade dependencies to work with new sqlite3.
