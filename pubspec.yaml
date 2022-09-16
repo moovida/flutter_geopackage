@@ -15,7 +15,7 @@ dependencies:
   #        can be removed once null-safety has been reached
   sqlite3: ^1.8.0 #'>=0.1.8 <=1.5.1'
 
-  dart_hydrologis_db: ^0.7.2
+  dart_hydrologis_db: ^1.0.0
     # path: ../dart_hydrologis_db/
     #  git:
     #    url: https://github.com/moovida/dart_hydrologis_db.git

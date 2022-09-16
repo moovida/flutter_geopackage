@@ -160,8 +160,8 @@ class GeopackageDb {
   ///
   /// @param name THe name of the feature entry.
   /// @return The entry, or <code>null</code> if no such entry exists.
-  FeatureEntry? feature(SqlName name) {
-    if (!_sqliteDb.hasTable(SqlName(TABLE_GEOMETRY_COLUMNS))) {
+  FeatureEntry? feature(TableName name) {
+    if (!_sqliteDb.hasTable(TableName(TABLE_GEOMETRY_COLUMNS))) {
       return null;
     }
     String compat =
@@ -272,8 +272,8 @@ class GeopackageDb {
   ///
   /// @param name THe name of the tile entry.
   /// @return The entry, or <code>null</code> if no such entry exists.
-  TileEntry? tile(SqlName name) {
-    if (!_sqliteDb.hasTable(SqlName(TABLE_GEOMETRY_COLUMNS))) {
+  TileEntry? tile(TableName name) {
+    if (!_sqliteDb.hasTable(TableName(TABLE_GEOMETRY_COLUMNS))) {
       return null;
     }
     String compat =
@@ -299,7 +299,7 @@ class GeopackageDb {
   /// @param entry The feature entry.
   /// @return whether this feature entry has a spatial index available.
   /// @throws IOException
-  bool hasSpatialIndex(SqlName table) {
+  bool hasSpatialIndex(TableName table) {
     if (!_supportsRtree) {
       return false;
     }
@@ -442,13 +442,13 @@ class GeopackageDb {
   }
 
   Map<String, List<String>> getTablesMap(bool doOrder) {
-    List<SqlName> tableNames = getTables(doOrder);
+    List<TableName> tableNames = getTables(doOrder);
     var tablesMap = GeopackageTableNames.getTablesSorted(tableNames, doOrder);
     return tablesMap;
   }
 
   void createSpatialTable(
-      SqlName tableName,
+      TableName tableName,
       int tableSrid,
       String geometryFieldData,
       List<String> fieldData,
@@ -483,12 +483,12 @@ class GeopackageDb {
     }
   }
 
-  Envelope getTableBounds(SqlName tableName) {
+  Envelope getTableBounds(TableName tableName) {
 // TODO
     throw new RuntimeException("Not implemented yet...");
   }
 
-  String? getSpatialindexBBoxWherePiece(SqlName tableName, String? alias,
+  String? getSpatialindexBBoxWherePiece(TableName tableName, String? alias,
       double x1, double y1, double x2, double y2) {
     if (!_supportsRtree) return null;
     FeatureEntry? featureItem = feature(tableName);
@@ -516,14 +516,14 @@ class GeopackageDb {
   }
 
   String? getSpatialindexGeometryWherePiece(
-      SqlName tableName, String? alias, Geometry geometry) {
+      TableName tableName, String? alias, Geometry geometry) {
 // this is not possible in gpkg, backing on envelope intersection
     Envelope env = geometry.getEnvelopeInternal();
     return getSpatialindexBBoxWherePiece(tableName, alias, env.getMinX(),
         env.getMinY(), env.getMaxX(), env.getMaxY());
   }
 
-  GeometryColumn? getGeometryColumnsForTable(SqlName tableName) {
+  GeometryColumn? getGeometryColumnsForTable(TableName tableName) {
     FeatureEntry? featureEntry = feature(tableName);
     if (featureEntry == null) return null;
     GeometryColumn gc = new GeometryColumn();
@@ -554,7 +554,7 @@ class GeopackageDb {
   /// @return The list of geometries intersecting the envelope.
   /// @throws Exception
   List<Geometry?> getGeometriesIn(
-    SqlName tableName, {
+    TableName tableName, {
     Envelope? envelope,
     Geometry? intersectionGeometry,
     List<String?>? prePostWhere,
@@ -646,7 +646,7 @@ class GeopackageDb {
   ///
   /// @return The list of geometries intersecting the geometry.
   /// @deprecated use [getGeometriesIn]. This will be removed.
-  List<Geometry?> getGeometriesIntersecting(SqlName tableName,
+  List<Geometry?> getGeometriesIntersecting(TableName tableName,
       {Geometry? geometry,
       List<String>? prePostWhere,
       int limit = -1,
@@ -669,29 +669,29 @@ class GeopackageDb {
     }
   }
 
-  List<SqlName> getTables(bool doOrder) {
+  List<TableName> getTables(bool doOrder) {
     return _sqliteDb.getTables(doOrder: doOrder);
   }
 
-  bool hasTable(SqlName tableName) {
+  bool hasTable(TableName tableName) {
     return _sqliteDb.hasTable(tableName);
   }
 
   /// Get the [tableName] columns as array of name, type, isPrimaryKey, notnull.
-  List<List<dynamic>> getTableColumns(SqlName tableName) {
+  List<List<dynamic>> getTableColumns(TableName tableName) {
     return _sqliteDb.getTableColumns(tableName);
   }
 
   void addGeometryXYColumnAndIndex(
-      SqlName tableName, String geomColName, String geomType, String epsg) {
+      TableName tableName, String geomColName, String geomType, String epsg) {
     createSpatialIndex(tableName, geomColName);
   }
 
-  String? getPrimaryKey(SqlName tableName) {
+  String? getPrimaryKey(TableName tableName) {
     return _sqliteDb.getPrimaryKey(tableName);
   }
 
-  GPQueryResult getTableData(SqlName tableName,
+  GPQueryResult getTableData(TableName tableName,
       {Envelope? envelope, Geometry? geometry, String? where, int? limit}) {
     GPQueryResult queryResult = new GPQueryResult();
     String sql = "select * from " + tableName.fixedName;
@@ -787,7 +787,7 @@ class GeopackageDb {
   /// Create a spatial index
   ///
   /// @param e feature entry to create spatial index for
-  void createSpatialIndex(SqlName tableName, String geometryName) {
+  void createSpatialIndex(TableName tableName, String geometryName) {
     if (!_supportsRtree) {
       // if no rtree is supported, the spatial index can't work.
       return;
@@ -811,7 +811,7 @@ class GeopackageDb {
   }
 
   void addGeoPackageContentsEntry(
-      SqlName tableName, int srid, String? description, Envelope? crsBounds) {
+      TableName tableName, int srid, String? description, Envelope? crsBounds) {
     if (!hasCrs(srid))
       throw new IOException(
           "The srid is not yet present in the package. Please add it before proceeding.");
@@ -884,7 +884,7 @@ class GeopackageDb {
 //        }
 //    }
 //
-  void addGeometryColumnsEntry(SqlName tableName, String geometryName,
+  void addGeometryColumnsEntry(TableName tableName, String geometryName,
       String geometryType, int srid, bool hasZ, bool hasM) {
 // geometryless tables should not be inserted into this table.
     String sql =
@@ -959,7 +959,7 @@ class GeopackageDb {
   }
 
   void checkStyleTable() {
-    if (!_sqliteDb.hasTable(SqlName(HM_STYLES_TABLE))) {
+    if (!_sqliteDb.hasTable(TableName(HM_STYLES_TABLE))) {
       var createTablesQuery = '''
       CREATE TABLE $HM_STYLES_TABLE (  
         tablename TEXT NOT NULL,
@@ -1053,7 +1053,7 @@ class GeopackageDb {
   /// Update a new record using a map and a where condition.
   ///
   /// This returns the number of rows affected.
-  int? updateMap(SqlName table, Map<String, dynamic> values, String where) {
+  int? updateMap(TableName table, Map<String, dynamic> values, String where) {
     return _sqliteDb.updateMap(table, values, where);
   }
 

@@ -91,7 +91,7 @@ packages:
       name: dart_hydrologis_db
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "0.7.3"
+    version: "1.0.0"
   dart_hydrologis_utils:
     dependency: "direct dev"
     description:
@@ -273,7 +273,7 @@ packages:
       name: postgres
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "2.4.6"
+    version: "2.5.1"
   proj4dart:
     dependency: "direct main"
     description:

@@ -40,16 +40,16 @@ void main() {
       try {
         db.openOrCreate();
 
-        expect(db.hasTable(SqlName(TABLE_GEOPACKAGE_CONTENTS)), true);
-        expect(db.hasTable(SqlName(TABLE_SPATIAL_REF_SYS)), true);
-        expect(db.hasTable(SqlName(TABLE_DATA_COLUMN_CONSTRAINTS)), true);
-        expect(db.hasTable(SqlName(TABLE_DATA_COLUMNS)), true);
-        expect(db.hasTable(SqlName(TABLE_EXTENSIONS)), true);
-        expect(db.hasTable(SqlName(TABLE_GEOMETRY_COLUMNS)), true);
-        expect(db.hasTable(SqlName(TABLE_METADATA_REFERENCE)), true);
-        expect(db.hasTable(SqlName(TABLE_METADATA)), true);
-        expect(db.hasTable(SqlName(TABLE_TILE_MATRIX_SET)), true);
-        expect(db.hasTable(SqlName(TABLE_TILE_MATRIX_METADATA)), true);
+        expect(db.hasTable(TableName(TABLE_GEOPACKAGE_CONTENTS)), true);
+        expect(db.hasTable(TableName(TABLE_SPATIAL_REF_SYS)), true);
+        expect(db.hasTable(TableName(TABLE_DATA_COLUMN_CONSTRAINTS)), true);
+        expect(db.hasTable(TableName(TABLE_DATA_COLUMNS)), true);
+        expect(db.hasTable(TableName(TABLE_EXTENSIONS)), true);
+        expect(db.hasTable(TableName(TABLE_GEOMETRY_COLUMNS)), true);
+        expect(db.hasTable(TableName(TABLE_METADATA_REFERENCE)), true);
+        expect(db.hasTable(TableName(TABLE_METADATA)), true);
+        expect(db.hasTable(TableName(TABLE_TILE_MATRIX_SET)), true);
+        expect(db.hasTable(TableName(TABLE_TILE_MATRIX_METADATA)), true);
       } finally {
         db.close();
       }
@@ -59,7 +59,7 @@ void main() {
       try {
         db.openOrCreate();
 
-        var t1Name = SqlName("table1");
+        var t1Name = TableName("table1");
         db.createSpatialTable(
           t1Name,
           4326,
@@ -132,7 +132,7 @@ void main() {
       try {
         db.openOrCreate();
 
-        var t1Name = SqlName("tablenonspatial");
+        var t1Name = TableName("tablenonspatial");
         var create = """create table ${t1Name.fixedName} (
             key TEXT,
             value TEXT
@@ -165,7 +165,7 @@ void main() {
       try {
         db.openOrCreate();
 
-        var t1Name = SqlName("table1");
+        var t1Name = TableName("table1");
         db.createSpatialTable(
           t1Name,
           4326,
@@ -212,7 +212,7 @@ void main() {
       List<String>? tables = tablesMap[GeopackageTableNames.USERDATA];
       expect(tables!.length, 1);
 
-      var tableName = SqlName("samplepolygon");
+      var tableName = TableName("samplepolygon");
       var emptyLayer = emptyLayerDb.feature(tableName);
       expect(emptyLayer!.srid, 4326);
 
@@ -227,7 +227,7 @@ void main() {
     });
 
     test("test2dPointTable", () {
-      var point2DTable = SqlName("point2d");
+      var point2DTable = TableName("point2d");
       bool hasSpatialIndex = vectorDb!.hasSpatialIndex(point2DTable);
 
       GeometryColumn? geometryColumn =
@@ -244,7 +244,7 @@ void main() {
     });
 
     test("test2dLineStringTable", () {
-      var line2DTable = SqlName("linestring2d");
+      var line2DTable = TableName("linestring2d");
       bool hasSpatialIndex = vectorDb!.hasSpatialIndex(line2DTable);
       GeometryColumn? geometryColumn =
           vectorDb!.getGeometryColumnsForTable(line2DTable);
@@ -259,7 +259,7 @@ void main() {
     });
 
     test("test2dPolygonTable", () {
-      var polygon2DTable = SqlName("polygon2d");
+      var polygon2DTable = TableName("polygon2d");
       bool hasSpatialIndex = vectorDb!.hasSpatialIndex(polygon2DTable);
       GeometryColumn? geometryColumn =
           vectorDb!.getGeometryColumnsForTable(polygon2DTable);
@@ -275,7 +275,7 @@ void main() {
     });
 
     test("test2dMultiPointTable", () {
-      var multipoint2DTable = SqlName("multipoint2d");
+      var multipoint2DTable = TableName("multipoint2d");
       bool hasSpatialIndex = vectorDb!.hasSpatialIndex(multipoint2DTable);
       List<Geometry?> geometries = vectorDb!.getGeometriesIn(multipoint2DTable);
       geometries.removeWhere((g) => g == null);
@@ -286,7 +286,7 @@ void main() {
     });
 
     test("test_geomcollection2d_bounds_geom_queries", () {
-      var geomcollection2DTable = SqlName("geomcollection2d");
+      var geomcollection2DTable = TableName("geomcollection2d");
       bool hasSpatialIndex = vectorDb!.hasSpatialIndex(geomcollection2DTable);
       expect(hasSpatialIndex, true);
 
@@ -311,7 +311,7 @@ void main() {
     });
 
     test("test3dPointTable", () {
-      var point3DTable = SqlName("point3d");
+      var point3DTable = TableName("point3d");
       bool hasSpatialIndex = vectorDb!.hasSpatialIndex(point3DTable);
 
       List<Geometry?> geometries = vectorDb!.getGeometriesIn(point3DTable);
@@ -437,7 +437,7 @@ void main() {
     });
 
     test("testTileSettings", () {
-      TileEntry? entry = rasterDb!.tile(SqlName('tiles'));
+      TileEntry? entry = rasterDb!.tile(TableName('tiles'));
       List<TileMatrix> tileMatricies = entry!.getTileMatricies();
       expect(tileMatricies.length, 5);
       tileMatricies.forEach((tm) {
@@ -473,7 +473,7 @@ void main() {
 
   group("Geopackage Free Tiles Tests - ", () {
     test("test bounds", () {
-      TileEntry? entry = earth4326Db!.tile(SqlName('clouds'));
+      TileEntry? entry = earth4326Db!.tile(TableName('clouds'));
       TilesFetcher fetcher = TilesFetcher(entry!);
       var tile = fetcher.getLazyTile(earth4326Db!, 0, 0);
       expect(tile.tileBoundsLatLong!.getMinX(), -180);
@@ -500,7 +500,7 @@ void main() {
     });
 
     test("test tile fetching", () {
-      TileEntry? entry = earth4326Db!.tile(SqlName('clouds'));
+      TileEntry? entry = earth4326Db!.tile(TableName('clouds'));
       TilesFetcher fetcher = TilesFetcher(entry!);
 
       var tile = fetcher.getLazyTile(earth4326Db!, 0, 0);

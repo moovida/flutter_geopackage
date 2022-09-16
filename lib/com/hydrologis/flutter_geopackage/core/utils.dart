@@ -27,7 +27,7 @@ class GPQueryResult {
 /// Class representing a geometry_columns record.
 class GeometryColumn {
   // VARIABLES
-  late SqlName tableName;
+  late TableName tableName;
   late String geometryColumnName;
 
   /// The type, as compatible with {@link EGeometryType#fromGeometryTypeCode(int)} and {@link ESpatialiteGeometryType#forValue(int)}.
@@ -111,12 +111,12 @@ class GeopackageTableNames {
   /// @param doSort if <code>true</code>, table names are alphabetically sorted.
   /// @return the {@link LinkedHashMap}.
   static Map<String, List<String>> getTablesSorted(
-      List<SqlName> allTableNames, bool doSort) {
+      List<TableName> allTableNames, bool doSort) {
     Map<String, List<String>> tablesMap = {};
     tablesMap[USERDATA] = [];
     tablesMap[SYSTEM] = [];
 
-    for (SqlName name in allTableNames) {
+    for (TableName name in allTableNames) {
       var tableName = name.name.toLowerCase();
       if (tableName.startsWith(startsWithIndexTables) ||
           metadataTables.contains(tableName) ||
