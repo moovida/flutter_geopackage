@@ -1,3 +1,7 @@
+# Version 0.6.0+1
+
+Upgrade jts libraries to fix 3d geometry reading.
+
 # Version 0.6.0
 
 Upgrade dependencies to work with new db libs and TableName (breaking change).
