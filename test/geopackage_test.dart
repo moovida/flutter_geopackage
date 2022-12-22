@@ -11,6 +11,7 @@ void main() {
   GeopackageDb? vectorDb;
   GeopackageDb? rasterDb;
   GeopackageDb? earth4326Db;
+  GeopackageDb? wrongGeomDb;
 
   setUpAll(() {
     var ch = ConnectionsHandler();
@@ -26,12 +27,17 @@ void main() {
     earth4326Db = ch.open(earthDbFile.path);
     earth4326Db!.openOrCreate();
     earth4326Db!.forceRasterMobileCompatibility = false;
+
+    File wrongGeomDbFile = File("./test/test_jp.gpkg");
+    wrongGeomDb = ch.open(wrongGeomDbFile.path);
+    wrongGeomDb!.openOrCreate();
   });
 
   tearDownAll(() {
     vectorDb?.close();
     rasterDb?.close();
     earth4326Db?.close();
+    wrongGeomDb?.close();
   });
 
   group("Geopackage Test Creation - ", () {
@@ -346,6 +352,19 @@ void main() {
       expect(geometries.length, 1);
       expect(geometries[0]!.toText(), "POINT (1 2)");
       expect(hasSpatialIndex, true);
+    });
+
+    test("testWrongGeomTable", () {
+      var tables = wrongGeomDb?.getTables(true);
+
+      var table = tables?[17];
+      var geometryColumnsForTable =
+          wrongGeomDb?.getGeometryColumnsForTable(table!);
+      if (geometryColumnsForTable?.geometryType != EGeometryType.MULTIPOLYGON) {
+        table = tables![18];
+      }
+      var geometries = wrongGeomDb!.getGeometriesIn(table!);
+      expect(geometries.length, 1);
     });
 
     test("testIsEmptyfunction", () {
