@@ -13,19 +13,19 @@ dependencies:
 
   # MIT -> added to help chose dart_hydrologis_db the right version for the dev channel
   #        can be removed once null-safety has been reached
-  sqlite3: ^1.8.0 #'>=0.1.8 <=1.5.1'
+  sqlite3: ^1.9.1
 
-  dart_hydrologis_db: ^1.0.0
+  dart_hydrologis_db: ^1.0.1
     # path: ../dart_hydrologis_db/
     #  git:
     #    url: https://github.com/moovida/dart_hydrologis_db.git
 
-  dart_jts: ^0.2.2
+  dart_jts: ^0.2.2+3
 #    git:
 #      url: https://github.com/moovida/dart_jts.git
 
   # MIT
-  proj4dart: ^2.0.0
+  proj4dart: ^2.1.0
 
 
 dev_dependencies:
