@@ -1,3 +1,7 @@
+# Version 0.6.1
+
+Upgrade of dependencies.
+
 # Version 0.6.0+1
 
 Upgrade jts libraries to fix 3d geometry reading.
