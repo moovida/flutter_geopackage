@@ -541,6 +541,15 @@ class GeopackageDb {
     return gc;
   }
 
+  Future<List<dynamic>?> getGeometryColumnNameAndSridForTable(
+      TableName tableName) async {
+    FeatureEntry? featureEntry = feature(tableName);
+    if (featureEntry == null) {
+      return null;
+    }
+    return [featureEntry.geometryColumn, featureEntry.srid];
+  }
+
   /// Get the geometries of a table inside a given envelope.
   ///
   /// Note that the primary key value is put inside the geom's userdata.
