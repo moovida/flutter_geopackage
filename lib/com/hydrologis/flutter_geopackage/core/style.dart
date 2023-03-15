@@ -255,8 +255,8 @@ class BasicStyle {
     map[ID] = id;
     map[NAME] = name;
     map[SIZE] = size;
-    if (fillcolor != null) map[FILLCOLOR] = fillcolor;
-    if (strokecolor != null) map[STROKECOLOR] = strokecolor;
+    map[FILLCOLOR] = fillcolor;
+    map[STROKECOLOR] = strokecolor;
     map[FILLALPHA] = fillalpha;
     map[STROKEALPHA] = strokealpha;
     map[SHAPE] = shape;

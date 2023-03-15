@@ -1225,7 +1225,7 @@ class ConnectionsHandler {
     if (_tableNamesMap.length > 0) {
       _tableNamesMap.forEach((p, n) {
         msgs.add("Database: $p");
-        if (n != null && n.length > 0) {
+        if (n.length > 0) {
           msgs.add("-> with tables: ${n.join("; ")}");
         }
       });

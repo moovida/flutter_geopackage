@@ -161,9 +161,6 @@ class TilesFetcher {
           .firstWhere((tm) => tm.getZoomLevel() == zoomLevel, orElse: null);
     }
 
-    if (tileMatrix == null) {
-      throw StateError("No tile matrix found for given zoomlevel.");
-    }
     zoomLevel = tileMatrix.zoomLevel;
 
     matrixWidth = tileMatrix.getMatrixWidth();
@@ -225,7 +222,7 @@ class TilesFetcher {
       var y = row.get(GeopackageDb.COL_TILES_TILE_ROW);
       var lazyTile =
           getLazyTile(db, x, y, to4326BoundsConverter: to4326BoundsConverter);
-      if (lazyTile != null) tiles.add(lazyTile);
+      tiles.add(lazyTile);
     });
     return tiles;
   }

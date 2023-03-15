@@ -235,9 +235,9 @@ class GeoPkgGeomReader {
     // TODO: something with the magic number
     //    byte[] buf = new byte[4];
     _din = ByteOrderDataInStream(_dataBuffer);
-    var b1 = _din.readByte();
-    var b2 = _din.readByte();
-    var b3 = _din.readByte();
+    _din.readByte();
+    _din.readByte();
+    _din.readByte();
     int flag = _din.readByte();
 
     // next byte flags
@@ -290,10 +290,6 @@ class GeoPkgGeomWriter {
   }
 
   void writeToList(Geometry g, List<int> out) {
-    if (g == null) {
-      return;
-    }
-
     GeometryHeaderFlags flags = new GeometryHeaderFlags(0);
 
     flags.setBinaryType(GeopackageBinaryType.StandardGeoPackageBinary);
