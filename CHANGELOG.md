@@ -1,3 +1,7 @@
+# Version 0.6.3
+
+Move geometrycolumn and features to utils lib to have common with postgis.
+
 # Version 0.6.1
 
 Upgrade of dependencies.
