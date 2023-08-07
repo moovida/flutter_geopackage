@@ -15,6 +15,8 @@ dependencies:
   #        can be removed once null-safety has been reached
   sqlite3: ^1.9.1
 
+  dart_hydrologis_utils: ^0.7.0
+
   dart_hydrologis_db: ^1.0.1
     # path: ../dart_hydrologis_db/
     #  git:
@@ -31,5 +33,4 @@ dependencies:
 dev_dependencies:
   lints: ^1.0.1
   test: ^1.20.1
-  dart_hydrologis_utils: ^0.6.1
 

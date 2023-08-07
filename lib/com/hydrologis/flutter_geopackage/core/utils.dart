@@ -8,35 +8,6 @@ class SQLException implements Exception {
   String toString() => "SQLException: " + msg;
 }
 
-/// A simple table info.
-///
-/// <p>If performance is needed, this should not be used.</p>
-class GPQueryResult {
-  String? geomName;
-
-  /// This can optionally be used to identify record sources
-  /// in case of mixed data sources (ex. merging together
-  /// QueryResults from different queries.
-  List<String>? ids;
-
-  List<Geometry> geoms = [];
-
-  List<Map<String, dynamic>> data = [];
-}
-
-/// Class representing a geometry_columns record.
-class GeometryColumn {
-  // VARIABLES
-  late TableName tableName;
-  late String geometryColumnName;
-
-  /// The type, as compatible with {@link EGeometryType#fromGeometryTypeCode(int)} and {@link ESpatialiteGeometryType#forValue(int)}.
-  late EGeometryType geometryType;
-  late int coordinatesDimension;
-  late int srid;
-  late int isSpatialIndexEnabled;
-}
-
 class GeometryUtilities {
   /// Create a polygon of the supplied [env].
   ///

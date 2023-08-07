@@ -146,9 +146,9 @@ void main() {
         expect(geometries.length, 2);
 
         var tableData = db.getTableData(t1Name, where: "name='updated two'");
-        expect(tableData.data.length, 1);
-        var geom = tableData.geoms[0];
-        expect(geom.equals(point1), true);
+        expect(tableData.features.length, 1);
+        var geom = tableData.features[0].geometry;
+        expect(geom!.equals(point1), true);
 
         geometries = db.getGeometriesIn(t1Name,
             envelope: Envelope(0, 1.5, 0, 1.5), limit: 1);
@@ -250,7 +250,7 @@ void main() {
       expect(emptyLayer.bounds == Envelope(0, 0, 0, 0), true);
 
       var tableData = emptyLayerDb.getTableData(tableName);
-      expect(tableData.data.length, 0);
+      expect(tableData.features.length, 0);
 
       var geometriesIn = emptyLayerDb.getGeometriesIn(tableName,
           envelope: Envelope(-180, 180, -90, 90));

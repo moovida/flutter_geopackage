@@ -6,6 +6,7 @@ import "dart:core";
 import "dart:math" as math;
 import "dart:typed_data";
 
+import 'package:dart_hydrologis_utils/dart_hydrologis_utils.dart';
 import 'package:dart_hydrologis_db/dart_hydrologis_db.dart';
 import 'package:dart_jts/dart_jts.dart';
 import 'package:flutter_geopackage/com/hydrologis/flutter_geopackage/core/queries.dart';

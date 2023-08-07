@@ -529,7 +529,7 @@ class GeopackageDb {
     FeatureEntry? featureEntry = feature(tableName);
     if (featureEntry == null) return null;
     GeometryColumn gc = new GeometryColumn();
-    gc.tableName = tableName;
+    gc.tableName = tableName.getFullName();
     gc.geometryColumnName = featureEntry.geometryColumn;
     gc.geometryType = featureEntry.geometryType;
     int dim = 2;
@@ -702,9 +702,9 @@ class GeopackageDb {
     return _sqliteDb.getPrimaryKey(tableName);
   }
 
-  GPQueryResult getTableData(TableName tableName,
+  FeatureCollection getTableData(TableName tableName,
       {Envelope? envelope, Geometry? geometry, String? where, int? limit}) {
-    GPQueryResult queryResult = new GPQueryResult();
+    FeatureCollection queryResult = FeatureCollection();
     String sql = "select * from " + tableName.fixedName;
     List<String> wheresList = [];
 
@@ -753,28 +753,29 @@ class GeopackageDb {
     }
     var result = _sqliteDb.select(sql);
     result.forEach((QueryResultRow map) {
-      Map<String, dynamic> newMap = {};
+      Feature feature = Feature();
+
       bool doAdd = true;
       if (hasGeom) {
         var geomBytes = map.get(queryResult.geomName!);
         if (geomBytes != null) {
           Geometry geom = GeoPkgGeomReader(geomBytes).get();
           if (_supportsRtree && geometry == null) {
-            queryResult.geoms.add(geom);
+            feature.geometry = geom;
           } else {
             // if no spatial index is available, filter the geoms manually
             if (!hasBoundsfilter) {
               // no filter, take them all
-              queryResult.geoms.add(geom);
+              feature.geometry = geom;
             } else if (envelope != null &&
                 geom.getEnvelopeInternal().intersectsEnvelope(envelope)) {
-              queryResult.geoms.add(geom);
+              feature.geometry = geom;
             } else if (geometry != null &&
                 geom
                     .getEnvelopeInternal()
                     .intersectsEnvelope(geometry.getEnvelopeInternal()) &&
                 geom.intersects(geometry)) {
-              queryResult.geoms.add(geom);
+              feature.geometry = geom;
             } else {
               doAdd = false;
             }
@@ -785,10 +786,10 @@ class GeopackageDb {
         map
           ..forEach((k, v) {
             if (k != queryResult.geomName) {
-              newMap[k] = v;
+              feature.attributes[k] = v;
             }
           });
-        queryResult.data.add(newMap);
+        queryResult.features.add(feature);
       }
     });
 
