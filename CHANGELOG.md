@@ -1,3 +1,7 @@
+# Version 0.6.4
+
+Upgrade libs for new db api.
+
 # Version 0.6.3
 
 Move geometrycolumn and features to utils lib to have common with postgis.
