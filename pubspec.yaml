@@ -9,7 +9,7 @@ environment:
   sdk: ">=2.12.0 <4.0.0"
 
 dependencies:
-  intl: '>=0.16.1 <=0.18.0'
+  # intl: '>=0.16.1 <=0.18.0'
 
   # MIT -> added to help chose dart_hydrologis_db the right version for the dev channel
   #        can be removed once null-safety has been reached
