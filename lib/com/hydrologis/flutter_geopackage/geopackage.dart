@@ -16,9 +16,6 @@ class GeopackageDb {
   static const String SELECTQUERY_POST =
       " where $COL_TILES_ZOOM_LEVEL=? AND $COL_TILES_TILE_COLUMN=? AND $COL_TILES_TILE_ROW=?";
 
-  /// An ISO8601 date formatter (yyyy-MM-dd HH:mm:ss).
-  static final DateFormat ISO8601_TS_FORMATTER = DateFormat(DATE_FORMAT_STRING);
-
   static const int MERCATOR_SRID = 3857;
   static const int WGS84LL_SRID = 4326;
 
