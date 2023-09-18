@@ -323,7 +323,7 @@ class GeoPkgGeomWriter {
       out.addAll(bytesFromDouble(env.getMaxY(), endian));
     }
 
-    new WKBWriter.withDimOrder(dim, endian).writeStream(g, out);
+    new WKBWriter.withDimOrder(dim, endian).writeStream(g, out, true);
   }
 
   /// Convert a 32 bit integer [number] to its int representation.
